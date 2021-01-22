@@ -2,7 +2,12 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import ReactDOMServer from 'react-dom/server'
 
-import { useQuery, QueryClient, QueryClientProvider, QueryCache } from '../..'
+import {
+  useQuery,
+  makeQueryClient,
+  QueryClientProvider,
+  makeQueryCache,
+} from '../..'
 import { dehydrate, hydrate } from '../'
 import * as utils from '../../core/utils'
 import { mockConsoleError, sleep } from '../../react/tests/utils'
@@ -30,7 +35,10 @@ describe('Server side rendering with de/rehydration', () => {
 
     // -- Shared part --
     function SuccessComponent() {
-      const result = useQuery('success', () => fetchDataSuccess('success!'))
+      const result = useQuery({
+        queryKey: 'success',
+        queryFn: () => fetchDataSuccess('success!'),
+      })
       return (
         <PrintStateComponent componentName="SuccessComponent" result={result} />
       )
@@ -39,14 +47,15 @@ describe('Server side rendering with de/rehydration', () => {
     // -- Server part --
     setIsServer(true)
 
-    const prefetchCache = new QueryCache()
-    const prefetchClient = new QueryClient({ queryCache: prefetchCache })
-    await prefetchClient.prefetchQuery('success', () =>
-      fetchDataSuccess('success')
-    )
+    const prefetchCache = makeQueryCache()
+    const prefetchClient = makeQueryClient({ queryCache: prefetchCache })
+    await prefetchClient.prefetchQuery({
+      queryKey: 'success',
+      queryFn: () => fetchDataSuccess('success'),
+    })
     const dehydratedStateServer = dehydrate(prefetchClient)
-    const renderCache = new QueryCache()
-    const renderClient = new QueryClient({ queryCache: renderCache })
+    const renderCache = makeQueryCache()
+    const renderClient = makeQueryClient({ queryCache: renderCache })
     hydrate(renderClient, dehydratedStateServer)
     const markup = ReactDOMServer.renderToString(
       <QueryClientProvider client={renderClient}>
@@ -66,8 +75,8 @@ describe('Server side rendering with de/rehydration', () => {
     const el = document.createElement('div')
     el.innerHTML = markup
 
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     hydrate(queryClient, JSON.parse(stringifiedState))
 
     ReactDOM.hydrate(
@@ -95,7 +104,11 @@ describe('Server side rendering with de/rehydration', () => {
 
     // -- Shared part --
     function ErrorComponent() {
-      const result = useQuery('error', () => fetchDataError(), { retry: false })
+      const result = useQuery({
+        queryKey: 'error',
+        queryFn: () => fetchDataError(),
+        retry: false,
+      })
       return (
         <PrintStateComponent componentName="ErrorComponent" result={result} />
       )
@@ -103,12 +116,15 @@ describe('Server side rendering with de/rehydration', () => {
 
     // -- Server part --
     setIsServer(true)
-    const prefetchCache = new QueryCache()
-    const prefetchClient = new QueryClient({ queryCache: prefetchCache })
-    await prefetchClient.prefetchQuery('error', () => fetchDataError())
+    const prefetchCache = makeQueryCache()
+    const prefetchClient = makeQueryClient({ queryCache: prefetchCache })
+    await prefetchClient.prefetchQuery({
+      queryKey: 'error',
+      queryFn: () => fetchDataError(),
+    })
     const dehydratedStateServer = dehydrate(prefetchClient)
-    const renderCache = new QueryCache()
-    const renderClient = new QueryClient({ queryCache: renderCache })
+    const renderCache = makeQueryCache()
+    const renderClient = makeQueryClient({ queryCache: renderCache })
     hydrate(renderClient, dehydratedStateServer)
     const markup = ReactDOMServer.renderToString(
       <QueryClientProvider client={renderClient}>
@@ -128,8 +144,8 @@ describe('Server side rendering with de/rehydration', () => {
     const el = document.createElement('div')
     el.innerHTML = markup
 
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     hydrate(queryClient, JSON.parse(stringifiedState))
 
     ReactDOM.hydrate(
@@ -160,7 +176,10 @@ describe('Server side rendering with de/rehydration', () => {
 
     // -- Shared part --
     function SuccessComponent() {
-      const result = useQuery('success', () => fetchDataSuccess('success!'))
+      const result = useQuery({
+        queryKey: 'success',
+        queryFn: () => fetchDataSuccess('success!'),
+      })
       return (
         <PrintStateComponent componentName="SuccessComponent" result={result} />
       )
@@ -169,11 +188,11 @@ describe('Server side rendering with de/rehydration', () => {
     // -- Server part --
     setIsServer(true)
 
-    const prefetchCache = new QueryCache()
-    const prefetchClient = new QueryClient({ queryCache: prefetchCache })
+    const prefetchCache = makeQueryCache()
+    const prefetchClient = makeQueryClient({ queryCache: prefetchCache })
     const dehydratedStateServer = dehydrate(prefetchClient)
-    const renderCache = new QueryCache()
-    const renderClient = new QueryClient({ queryCache: renderCache })
+    const renderCache = makeQueryCache()
+    const renderClient = makeQueryClient({ queryCache: renderCache })
     hydrate(renderClient, dehydratedStateServer)
     const markup = ReactDOMServer.renderToString(
       <QueryClientProvider client={renderClient}>
@@ -193,8 +212,8 @@ describe('Server side rendering with de/rehydration', () => {
     const el = document.createElement('div')
     el.innerHTML = markup
 
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     hydrate(queryClient, JSON.parse(stringifiedState))
 
     ReactDOM.hydrate(

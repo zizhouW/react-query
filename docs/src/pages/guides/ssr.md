@@ -58,7 +58,7 @@ To support caching queries on the server and set up hydration:
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { Hydrate } from 'react-query/hydration'
 
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 
 export default function MyApp({ Component, pageProps }) {
   return (
@@ -83,7 +83,7 @@ import { QueryClient, useQuery } from 'react-query'
 import { dehydrate } from 'react-query/hydration'
 
 export async function getStaticProps() {
-  const queryClient = new QueryClient()
+  const queryClient = makeQueryClient()
 
   await queryClient.prefetchQuery('posts', getPosts)
 
@@ -129,7 +129,7 @@ This guide is at-best, a high level overview of how SSR with React Query should 
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { dehydrate, Hydrate } from 'react-query/hydration'
 
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 await queryClient.prefetchQuery('key', fn)
 const dehydratedState = dehydrate(queryClient)
 
@@ -165,7 +165,7 @@ import { Hydrate } from 'react-query/hydration'
 
 const dehydratedState = window.__REACT_QUERY_STATE__
 
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 
 ReactDOM.hydrate(
   <QueryClientProvider client={queryClient}>

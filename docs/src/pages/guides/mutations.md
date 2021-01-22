@@ -211,12 +211,12 @@ If mutations fail because the device is offline, they will be retried in the sam
 Mutations can be persisted to storage if needed and resumed at a later point. This can be done with the hydration functions:
 
 ```js
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 
 // Define the "addTodo" mutation
 queryClient.setMutationDefaults('addTodo', {
   mutationFn: addTodo,
-  onMutate: async (variables) => {
+  onMutate: async variables => {
     // Cancel current queries for the todos list
     await queryClient.cancelQueries('todos')
 
@@ -231,11 +231,15 @@ queryClient.setMutationDefaults('addTodo', {
   },
   onSuccess: (result, variables, context) => {
     // Replace optimistic todo in the todos list with the result
-    queryClient.setQueryData('todos', old => old.map(todo => todo.id === context.optimisticTodo.id ? result : todo))
+    queryClient.setQueryData('todos', old =>
+      old.map(todo => (todo.id === context.optimisticTodo.id ? result : todo))
+    )
   },
   onError: (error, variables, context) => {
     // Remove optimistic todo from the todos list
-    queryClient.setQueryData('todos', old => old.filter(todo => todo.id !== context.optimisticTodo.id))
+    queryClient.setQueryData('todos', old =>
+      old.filter(todo => todo.id !== context.optimisticTodo.id)
+    )
   },
   retry: 3,
 })

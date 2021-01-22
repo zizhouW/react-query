@@ -1,15 +1,23 @@
 import React from 'react'
 
 import { notifyManager } from '../core/notifyManager'
-import { QueryObserver } from '../core/queryObserver'
+import { makeQueryObserver, QueryObserver } from '../core/queryObserver'
 import { useQueryErrorResetBoundary } from './QueryErrorResetBoundary'
 import { useQueryClient } from './QueryClientProvider'
 import { UseBaseQueryOptions } from './types'
 
-export function useBaseQuery<TQueryFnData, TError, TData, TQueryData>(
-  options: UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData>,
-  Observer: typeof QueryObserver
-) {
+// UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData>
+// typeof makeQueryObserver
+
+export function useBaseQuery<
+  TOptions extends UseBaseQueryOptions<
+    unknown,
+    unknown,
+    unknown,
+    unknown
+  > = UseBaseQueryOptions,
+  TMakeObserver extends typeof makeQueryObserver = typeof makeQueryObserver
+>(options: TOptions, makeObserver: TMakeObserver) {
   const queryClient = useQueryClient()
   const errorResetBoundary = useQueryErrorResetBoundary()
   const defaultedOptions = queryClient.defaultQueryObserverOptions(options)
@@ -49,7 +57,7 @@ export function useBaseQuery<TQueryFnData, TError, TData, TQueryData>(
   // Create query observer
   const observerRef = React.useRef<QueryObserver<any, any, any, any>>()
   const observer =
-    observerRef.current || new Observer(queryClient, defaultedOptions)
+    observerRef.current || makeObserver(queryClient, defaultedOptions)
   observerRef.current = observer
 
   // Update options

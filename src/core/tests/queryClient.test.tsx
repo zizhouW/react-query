@@ -1,12 +1,13 @@
 import { sleep, queryKey, mockConsoleError } from '../../react/tests/utils'
-import { QueryCache, QueryClient, QueryObserver } from '../..'
+import { QueryCache, QueryClient, makeQueryClient } from '../..'
+import { makeQueryObserver } from '../queryObserver'
 
 describe('queryClient', () => {
   let queryClient: QueryClient
   let queryCache: QueryCache
 
   beforeEach(() => {
-    queryClient = new QueryClient()
+    queryClient = makeQueryClient()
     queryCache = queryClient.getQueryCache()
     queryClient.mount()
   })
@@ -20,25 +21,25 @@ describe('queryClient', () => {
       const key = queryKey()
 
       const queryFn = () => 'data'
-      const testClient = new QueryClient({
+      const testClient = makeQueryClient({
         defaultOptions: { queries: { queryFn } },
       })
 
-      expect(() => testClient.prefetchQuery(key)).not.toThrow()
+      expect(() => testClient.prefetchQuery({ queryKey: key })).not.toThrow()
     })
 
     test('should merge defaultOptions when query is added to cache', async () => {
       const key = queryKey()
 
-      const testClient = new QueryClient({
+      const testClient = makeQueryClient({
         defaultOptions: {
           queries: { cacheTime: Infinity },
         },
       })
 
       const fetchData = () => Promise.resolve(undefined)
-      await testClient.prefetchQuery(key, fetchData)
-      const newQuery = testClient.getQueryCache().find(key)
+      await testClient.prefetchQuery({ queryKey: key, queryFn: fetchData })
+      const newQuery = testClient.getQueryCache().find({ queryKey: key })
       expect(newQuery?.options.cacheTime).toBe(Infinity)
     })
   })
@@ -48,14 +49,14 @@ describe('queryClient', () => {
       const key = queryKey()
       queryClient.setQueryDefaults(key, { queryFn: () => 'data' })
       await sleep(1)
-      const data = queryClient.getQueryData(key)
+      const data = queryClient.getQueryData({ queryKey: key })
       expect(data).toBeUndefined()
     })
 
     test('should be able to override defaults', async () => {
       const key = queryKey()
       queryClient.setQueryDefaults(key, { queryFn: () => 'data' })
-      const observer = new QueryObserver(queryClient, { queryKey: key })
+      const observer = makeQueryObserver(queryClient, { queryKey: key })
       const { data } = await observer.refetch()
       expect(data).toBe('data')
     })
@@ -63,7 +64,7 @@ describe('queryClient', () => {
     test('should match the query key partially', async () => {
       const key = queryKey()
       queryClient.setQueryDefaults([key], { queryFn: () => 'data' })
-      const observer = new QueryObserver(queryClient, {
+      const observer = makeQueryObserver(queryClient, {
         queryKey: [key, 'a'],
       })
       const { data } = await observer.refetch()
@@ -74,7 +75,7 @@ describe('queryClient', () => {
       const consoleMock = mockConsoleError()
       const key = queryKey()
       queryClient.setQueryDefaults([key, 'a'], { queryFn: () => 'data' })
-      const observer = new QueryObserver(queryClient, {
+      const observer = makeQueryObserver(queryClient, {
         queryKey: [key],
         retry: false,
       })
@@ -89,7 +90,7 @@ describe('queryClient', () => {
         queryFn: () => 'data',
         enabled: false,
       })
-      const observer = new QueryObserver(queryClient, {
+      const observer = makeQueryObserver(queryClient, {
         queryKey: [key],
       })
       expect(observer.getCurrentResult().status).toBe('idle')
@@ -118,25 +119,25 @@ describe('queryClient', () => {
 
     test('should use default options', () => {
       const key = queryKey()
-      const testClient = new QueryClient({
+      const testClient = makeQueryClient({
         defaultOptions: { queries: { queryKeyHashFn: () => 'someKey' } },
       })
       const testCache = testClient.getQueryCache()
       testClient.setQueryData(key, 'data')
-      expect(testClient.getQueryData(key)).toBe('data')
-      expect(testCache.find(key)).toBe(testCache.get('someKey'))
+      expect(testClient.getQueryData({ queryKey: key })).toBe('data')
+      expect(testCache.find({ queryKey: key })).toBe(testCache.get('someKey'))
     })
 
     test('should create a new query if query was not found', () => {
       const key = queryKey()
       queryClient.setQueryData(key, 'bar')
-      expect(queryClient.getQueryData(key)).toBe('bar')
+      expect(queryClient.getQueryData({ queryKey: key })).toBe('bar')
     })
 
     test('should create a new query if query was not found', () => {
       const key = queryKey()
       queryClient.setQueryData(key, 'qux')
-      expect(queryClient.getQueryData(key)).toBe('qux')
+      expect(queryClient.getQueryData({ queryKey: key })).toBe('qux')
     })
 
     test('should accept an update function', () => {
@@ -148,7 +149,9 @@ describe('queryClient', () => {
       queryClient.setQueryData(key, updater)
 
       expect(updater).toHaveBeenCalled()
-      expect(queryCache.find(key)!.state.data).toEqual('new data + test data')
+      expect(queryCache.find({ queryKey: key })!.state.data).toEqual(
+        'new data + test data'
+      )
     })
   })
 
@@ -160,8 +163,11 @@ describe('queryClient', () => {
       const key = queryKey()
 
       await expect(
-        queryClient.fetchQuery(key, async () => {
-          throw new Error('error')
+        queryClient.fetchQuery({
+          queryKey: key,
+          queryFn: async () => {
+            throw new Error('error')
+          },
         })
       ).rejects.toEqual(new Error('error'))
 
@@ -172,38 +178,44 @@ describe('queryClient', () => {
       const key = queryKey()
 
       const fetchFn = () => Promise.resolve('data')
-      const first = await queryClient.fetchQuery(key, fetchFn)
-      const second = await queryClient.fetchQuery(key, fetchFn)
+      const first = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: fetchFn,
+      })
+      const second = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: fetchFn,
+      })
 
       expect(second).toBe(first)
     })
 
     test('should be able to fetch when cache time is set to 0 and then be removed', async () => {
       const key1 = queryKey()
-      const result = await queryClient.fetchQuery(
-        key1,
-        async () => {
+      const result = await queryClient.fetchQuery({
+        queryKey: key1,
+        queryFn: async () => {
           await sleep(10)
           return 1
         },
-        { cacheTime: 0 }
-      )
-      const result2 = queryClient.getQueryData(key1)
+        cacheTime: 0,
+      })
+      const result2 = queryClient.getQueryData({ queryKey: key1 })
       expect(result).toEqual(1)
       expect(result2).toEqual(undefined)
     })
 
     test('should keep a query in cache if cache time is Infinity', async () => {
       const key1 = queryKey()
-      const result = await queryClient.fetchQuery(
-        key1,
-        async () => {
+      const result = await queryClient.fetchQuery({
+        queryKey: key1,
+        queryFn: async () => {
           await sleep(10)
           return 1
         },
-        { cacheTime: Infinity }
-      )
-      const result2 = queryClient.getQueryData(key1)
+        cacheTime: Infinity,
+      })
+      const result2 = queryClient.getQueryData({ queryKey: key1 })
       expect(result).toEqual(1)
       expect(result2).toEqual(1)
     })
@@ -213,7 +225,9 @@ describe('queryClient', () => {
 
       queryClient.setQueryData(key, 'og')
       const fetchFn = () => Promise.resolve('new')
-      const first = await queryClient.fetchQuery(key, fetchFn, {
+      const first = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: fetchFn,
         initialData: 'initial',
         staleTime: 100,
       })
@@ -227,18 +241,26 @@ describe('queryClient', () => {
       const fetchFn = () => ++count
 
       queryClient.setQueryData(key, count)
-      const first = await queryClient.fetchQuery(key, fetchFn, {
+      const first = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: fetchFn,
         staleTime: 100,
       })
       await sleep(11)
-      const second = await queryClient.fetchQuery(key, fetchFn, {
+      const second = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: fetchFn,
         staleTime: 10,
       })
-      const third = await queryClient.fetchQuery(key, fetchFn, {
+      const third = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: fetchFn,
         staleTime: 10,
       })
       await sleep(11)
-      const fourth = await queryClient.fetchQuery(key, fetchFn, {
+      const fourth = await queryClient.fetchQuery({
+        queryKey: key,
+        queryFn: fetchFn,
         staleTime: 10,
       })
       expect(first).toBe(0)
@@ -251,11 +273,11 @@ describe('queryClient', () => {
   describe('fetchInfiniteQuery', () => {
     test('should return infinite query data', async () => {
       const key = queryKey()
-      const result = await queryClient.fetchInfiniteQuery(
-        key,
-        ({ pageParam = 10 }) => Number(pageParam)
-      )
-      const result2 = queryClient.getQueryData(key)
+      const result = await queryClient.fetchInfiniteQuery({
+        queryKey: key,
+        queryFn: ({ pageParam = 10 }) => Number(pageParam),
+      })
+      const result2 = queryClient.getQueryData({ queryKey: key })
 
       const expected = {
         pages: [10],
@@ -271,11 +293,12 @@ describe('queryClient', () => {
     test('should return infinite query data', async () => {
       const key = queryKey()
 
-      await queryClient.prefetchInfiniteQuery(key, ({ pageParam = 10 }) =>
-        Number(pageParam)
-      )
+      await queryClient.prefetchInfiniteQuery({
+        queryKey: key,
+        queryFn: ({ pageParam = 10 }) => Number(pageParam),
+      })
 
-      const result = queryClient.getQueryData(key)
+      const result = queryClient.getQueryData({ queryKey: key })
 
       expect(result).toEqual({
         pages: [10],
@@ -290,15 +313,13 @@ describe('queryClient', () => {
 
       const key = queryKey()
 
-      const result = await queryClient.prefetchQuery(
-        key,
-        async () => {
+      const result = await queryClient.prefetchQuery({
+        queryKey: key,
+        queryFn: async () => {
           throw new Error('error')
         },
-        {
-          retry: false,
-        }
-      )
+        retry: false,
+      })
 
       expect(result).toBeUndefined()
       expect(consoleMock).toHaveBeenCalled()
@@ -314,8 +335,8 @@ describe('queryClient', () => {
       const fetchFn = () => Promise.resolve('data')
 
       // check the query was added to the cache
-      await queryClient.prefetchQuery(key, fetchFn)
-      expect(queryCache.find(key)).toBeTruthy()
+      await queryClient.prefetchQuery({ queryKey: key, queryFn: fetchFn })
+      expect(queryCache.find({ queryKey: key })).toBeTruthy()
 
       // check the error doesn't occur
       expect(() =>
@@ -323,7 +344,7 @@ describe('queryClient', () => {
       ).not.toThrow()
 
       // check query was successful removed
-      expect(queryCache.find(key)).toBeFalsy()
+      expect(queryCache.find({ queryKey: key })).toBeFalsy()
     })
   })
 
@@ -333,33 +354,48 @@ describe('queryClient', () => {
       const key1 = queryKey()
       const key2 = queryKey()
       const key3 = queryKey()
-      await queryClient.fetchQuery(key1, async () => {
-        return 'data'
+      await queryClient.fetchQuery({
+        queryKey: key1,
+        queryFn: async () => {
+          return 'data'
+        },
       })
       try {
-        await queryClient.fetchQuery(key2, async () => {
-          return Promise.reject('err')
+        await queryClient.fetchQuery({
+          queryKey: key2,
+          queryFn: async () => {
+            return Promise.reject('err')
+          },
         })
       } catch {}
-      queryClient.fetchQuery(key1, async () => {
-        await sleep(1000)
-        return 'data2'
-      })
-      try {
-        queryClient.fetchQuery(key2, async () => {
+      queryClient.fetchQuery({
+        queryKey: key1,
+        queryFn: async () => {
           await sleep(1000)
-          return Promise.reject('err2')
+          return 'data2'
+        },
+      })
+      try {
+        queryClient.fetchQuery({
+          queryKey: key2,
+          queryFn: async () => {
+            await sleep(1000)
+            return Promise.reject('err2')
+          },
         })
       } catch {}
-      queryClient.fetchQuery(key3, async () => {
-        await sleep(1000)
-        return 'data3'
+      queryClient.fetchQuery({
+        queryKey: key3,
+        queryFn: async () => {
+          await sleep(1000)
+          return 'data3'
+        },
       })
       await sleep(10)
       await queryClient.cancelQueries()
-      const state1 = queryClient.getQueryState(key1)
-      const state2 = queryClient.getQueryState(key2)
-      const state3 = queryClient.getQueryState(key3)
+      const state1 = queryClient.getQueryState({ queryKey: key1 })
+      const state2 = queryClient.getQueryState({ queryKey: key2 })
+      const state3 = queryClient.getQueryState({ queryKey: key3 })
       expect(state1).toMatchObject({
         data: 'data',
         status: 'success',
@@ -383,13 +419,13 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      await queryClient.fetchQuery(key1, queryFn1)
-      await queryClient.fetchQuery(key2, queryFn2)
-      const observer1 = new QueryObserver(queryClient, {
+      await queryClient.fetchQuery({ queryKey: key1, queryFn: queryFn1 })
+      await queryClient.fetchQuery({ queryKey: key2, queryFn: queryFn2 })
+      const observer1 = makeQueryObserver(queryClient, {
         queryKey: key1,
         enabled: false,
       })
-      const observer2 = new QueryObserver(queryClient, {
+      const observer2 = makeQueryObserver(queryClient, {
         queryKey: key1,
         enabled: false,
       })
@@ -407,9 +443,9 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      await queryClient.fetchQuery(key1, queryFn1)
-      await queryClient.fetchQuery(key2, queryFn2)
-      const observer = new QueryObserver(queryClient, {
+      await queryClient.fetchQuery({ queryKey: key1, queryFn: queryFn1 })
+      await queryClient.fetchQuery({ queryKey: key2, queryFn: queryFn2 })
+      const observer = makeQueryObserver(queryClient, {
         queryKey: key1,
         queryFn: queryFn1,
         staleTime: Infinity,
@@ -426,14 +462,14 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      await queryClient.fetchQuery(key1, queryFn1)
-      await queryClient.fetchQuery(key2, queryFn2)
-      const observer = new QueryObserver(queryClient, {
+      await queryClient.fetchQuery({ queryKey: key1, queryFn: queryFn1 })
+      await queryClient.fetchQuery({ queryKey: key2, queryFn: queryFn2 })
+      const observer = makeQueryObserver(queryClient, {
         queryKey: key1,
         queryFn: queryFn1,
       })
       const unsubscribe = observer.subscribe()
-      queryClient.invalidateQueries(key1)
+      queryClient.invalidateQueries({ queryKey: key1 })
       await queryClient.refetchQueries({ stale: true })
       unsubscribe()
       expect(queryFn1).toHaveBeenCalledTimes(2)
@@ -445,10 +481,10 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      await queryClient.fetchQuery(key1, queryFn1)
-      await queryClient.fetchQuery(key2, queryFn2)
-      queryClient.invalidateQueries(key1)
-      const observer = new QueryObserver(queryClient, {
+      await queryClient.fetchQuery({ queryKey: key1, queryFn: queryFn1 })
+      await queryClient.fetchQuery({ queryKey: key2, queryFn: queryFn2 })
+      queryClient.invalidateQueries({ queryKey: key1 })
+      const observer = makeQueryObserver(queryClient, {
         queryKey: key1,
         queryFn: queryFn1,
       })
@@ -464,9 +500,9 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      await queryClient.fetchQuery(key1, queryFn1)
-      await queryClient.fetchQuery(key2, queryFn2)
-      const observer = new QueryObserver(queryClient, {
+      await queryClient.fetchQuery({ queryKey: key1, queryFn: queryFn1 })
+      await queryClient.fetchQuery({ queryKey: key2, queryFn: queryFn2 })
+      const observer = makeQueryObserver(queryClient, {
         queryKey: key1,
         queryFn: queryFn1,
         staleTime: Infinity,
@@ -483,9 +519,9 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      await queryClient.fetchQuery(key1, queryFn1)
-      await queryClient.fetchQuery(key2, queryFn2)
-      const observer = new QueryObserver(queryClient, {
+      await queryClient.fetchQuery({ queryKey: key1, queryFn: queryFn1 })
+      await queryClient.fetchQuery({ queryKey: key2, queryFn: queryFn2 })
+      const observer = makeQueryObserver(queryClient, {
         queryKey: key1,
         queryFn: queryFn1,
         staleTime: Infinity,
@@ -504,15 +540,15 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      await queryClient.fetchQuery(key1, queryFn1)
-      await queryClient.fetchQuery(key2, queryFn2)
-      const observer = new QueryObserver(queryClient, {
+      await queryClient.fetchQuery({ queryKey: key1, queryFn: queryFn1 })
+      await queryClient.fetchQuery({ queryKey: key2, queryFn: queryFn2 })
+      const observer = makeQueryObserver(queryClient, {
         queryKey: key1,
         enabled: false,
         staleTime: Infinity,
       })
       const unsubscribe = observer.subscribe()
-      queryClient.invalidateQueries(key1)
+      queryClient.invalidateQueries({ queryKey: key1 })
       unsubscribe()
       expect(queryFn1).toHaveBeenCalledTimes(1)
       expect(queryFn2).toHaveBeenCalledTimes(1)
@@ -525,11 +561,11 @@ describe('queryClient', () => {
 
       const callback = jest.fn()
 
-      await queryClient.prefetchQuery(key, () => 'data')
+      await queryClient.prefetchQuery({ queryKey: key, queryFn: () => 'data' })
 
       queryCache.subscribe(callback)
 
-      queryClient.resetQueries(key)
+      queryClient.resetQueries({ queryKey: key })
 
       expect(callback).toHaveBeenCalled()
     })
@@ -537,15 +573,15 @@ describe('queryClient', () => {
     test('should reset query', async () => {
       const key = queryKey()
 
-      await queryClient.prefetchQuery(key, () => 'data')
+      await queryClient.prefetchQuery({ queryKey: key, queryFn: () => 'data' })
 
-      let state = queryClient.getQueryState(key)
+      let state = queryClient.getQueryState({ queryKey: key })
       expect(state?.data).toEqual('data')
       expect(state?.status).toEqual('success')
 
-      queryClient.resetQueries(key)
+      queryClient.resetQueries({ queryKey: key })
 
-      state = queryClient.getQueryState(key)
+      state = queryClient.getQueryState({ queryKey: key })
 
       expect(state).toBeTruthy()
       expect(state?.data).toBeUndefined()
@@ -555,16 +591,18 @@ describe('queryClient', () => {
     test('should reset query data to initial data if set', async () => {
       const key = queryKey()
 
-      await queryClient.prefetchQuery(key, () => 'data', {
+      await queryClient.prefetchQuery({
+        queryKey: key,
+        queryFn: () => 'data',
         initialData: 'initial',
       })
 
-      let state = queryClient.getQueryState(key)
+      let state = queryClient.getQueryState({ queryKey: key })
       expect(state?.data).toEqual('data')
 
-      queryClient.resetQueries(key)
+      queryClient.resetQueries({ queryKey: key })
 
-      state = queryClient.getQueryState(key)
+      state = queryClient.getQueryState({ queryKey: key })
 
       expect(state).toBeTruthy()
       expect(state?.data).toEqual('initial')
@@ -575,12 +613,12 @@ describe('queryClient', () => {
       const key2 = queryKey()
       const queryFn1 = jest.fn()
       const queryFn2 = jest.fn()
-      const observer1 = new QueryObserver(queryClient, {
+      const observer1 = makeQueryObserver(queryClient, {
         queryKey: key1,
         queryFn: queryFn1,
         enabled: true,
       })
-      const observer2 = new QueryObserver(queryClient, {
+      const observer2 = makeQueryObserver(queryClient, {
         queryKey: key2,
         queryFn: queryFn2,
         enabled: false,

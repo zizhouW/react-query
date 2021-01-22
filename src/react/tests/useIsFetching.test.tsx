@@ -8,13 +8,13 @@ import {
   setActTimeout,
   sleep,
 } from './utils'
-import { useQuery, useIsFetching, QueryClient, QueryCache } from '../..'
+import { useQuery, useIsFetching, makeQueryClient, makeQueryCache } from '../..'
 
 describe('useIsFetching', () => {
   // See https://github.com/tannerlinsley/react-query/issues/105
   it('should update as queries start and stop fetching', async () => {
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     const key = queryKey()
 
     function Page() {
@@ -22,16 +22,14 @@ describe('useIsFetching', () => {
 
       const isFetching = useIsFetching()
 
-      useQuery(
-        key,
-        async () => {
+      useQuery({
+        queryKey: key,
+        queryFn: async () => {
           await sleep(1000)
           return 'test'
         },
-        {
-          enabled: ready,
-        }
-      )
+        enabled: ready,
+      })
 
       return (
         <div>
@@ -51,8 +49,8 @@ describe('useIsFetching', () => {
 
   it('should not update state while rendering', async () => {
     const consoleMock = mockConsoleError()
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
 
     const key1 = queryKey()
     const key2 = queryKey()
@@ -66,17 +64,23 @@ describe('useIsFetching', () => {
     }
 
     function FirstQuery() {
-      useQuery(key1, async () => {
-        await sleep(100)
-        return 'data'
+      useQuery({
+        queryKey: key1,
+        queryFn: async () => {
+          await sleep(100)
+          return 'data'
+        },
       })
       return null
     }
 
     function SecondQuery() {
-      useQuery(key2, async () => {
-        await sleep(100)
-        return 'data'
+      useQuery({
+        queryKey: key2,
+        queryFn: async () => {
+          await sleep(100)
+          return 'data'
+        },
       })
       return null
     }
@@ -108,32 +112,38 @@ describe('useIsFetching', () => {
   })
 
   it('should be able to filter', async () => {
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     const key1 = queryKey()
     const key2 = queryKey()
 
     const isFetchings: number[] = []
 
     function One() {
-      useQuery(key1, async () => {
-        await sleep(10)
-        return 'test'
+      useQuery({
+        queryKey: key1,
+        queryFn: async () => {
+          await sleep(10)
+          return 'test'
+        },
       })
       return null
     }
 
     function Two() {
-      useQuery(key2, async () => {
-        await sleep(20)
-        return 'test'
+      useQuery({
+        queryKey: key2,
+        queryFn: async () => {
+          await sleep(20)
+          return 'test'
+        },
       })
       return null
     }
 
     function Page() {
       const [started, setStarted] = React.useState(false)
-      const isFetching = useIsFetching(key1)
+      const isFetching = useIsFetching({ queryKey: key1 })
       isFetchings.push(isFetching)
 
       React.useEffect(() => {

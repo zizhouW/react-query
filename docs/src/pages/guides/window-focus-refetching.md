@@ -9,7 +9,7 @@ If a user leaves your application and returns to stale data, **React Query autom
 
 ```js
 //
-const queryClient = new QueryClient({
+const queryClient = makeQueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,

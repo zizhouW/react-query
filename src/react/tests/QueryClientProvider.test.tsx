@@ -2,19 +2,27 @@ import React from 'react'
 import { render, waitFor } from '@testing-library/react'
 
 import { sleep, queryKey } from './utils'
-import { QueryClient, QueryClientProvider, QueryCache, useQuery } from '../..'
+import {
+  makeQueryClient,
+  QueryClientProvider,
+  makeQueryCache,
+  useQuery,
+} from '../..'
 
 describe('QueryClientProvider', () => {
   test('sets a specific cache for all queries to use', async () => {
     const key = queryKey()
 
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
 
     function Page() {
-      const { data } = useQuery(key, async () => {
-        await sleep(10)
-        return 'test'
+      const { data } = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return 'test'
+        },
       })
 
       return (
@@ -32,23 +40,26 @@ describe('QueryClientProvider', () => {
 
     await waitFor(() => rendered.getByText('test'))
 
-    expect(queryCache.find(key)).toBeDefined()
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
   })
 
   test('allows multiple caches to be partitioned', async () => {
     const key1 = queryKey()
     const key2 = queryKey()
 
-    const queryCache1 = new QueryCache()
-    const queryCache2 = new QueryCache()
+    const queryCache1 = makeQueryCache()
+    const queryCache2 = makeQueryCache()
 
-    const queryClient1 = new QueryClient({ queryCache: queryCache1 })
-    const queryClient2 = new QueryClient({ queryCache: queryCache2 })
+    const queryClient1 = makeQueryClient({ queryCache: queryCache1 })
+    const queryClient2 = makeQueryClient({ queryCache: queryCache2 })
 
     function Page1() {
-      const { data } = useQuery(key1, async () => {
-        await sleep(10)
-        return 'test1'
+      const { data } = useQuery({
+        queryKey: key1,
+        queryFn: async () => {
+          await sleep(10)
+          return 'test1'
+        },
       })
 
       return (
@@ -58,9 +69,12 @@ describe('QueryClientProvider', () => {
       )
     }
     function Page2() {
-      const { data } = useQuery(key2, async () => {
-        await sleep(10)
-        return 'test2'
+      const { data } = useQuery({
+        queryKey: key2,
+        queryFn: async () => {
+          await sleep(10)
+          return 'test2'
+        },
       })
 
       return (
@@ -84,17 +98,17 @@ describe('QueryClientProvider', () => {
     await waitFor(() => rendered.getByText('test1'))
     await waitFor(() => rendered.getByText('test2'))
 
-    expect(queryCache1.find(key1)).toBeDefined()
-    expect(queryCache1.find(key2)).not.toBeDefined()
-    expect(queryCache2.find(key1)).not.toBeDefined()
-    expect(queryCache2.find(key2)).toBeDefined()
+    expect(queryCache1.find({ queryKey: key1 })).toBeDefined()
+    expect(queryCache1.find({ queryKey: key2 })).not.toBeDefined()
+    expect(queryCache2.find({ queryKey: key1 })).not.toBeDefined()
+    expect(queryCache2.find({ queryKey: key2 })).toBeDefined()
   })
 
   test("uses defaultOptions for queries when they don't provide their own config", async () => {
     const key = queryKey()
 
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({
       queryCache,
       defaultOptions: {
         queries: {
@@ -104,9 +118,12 @@ describe('QueryClientProvider', () => {
     })
 
     function Page() {
-      const { data } = useQuery(key, async () => {
-        await sleep(10)
-        return 'test'
+      const { data } = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return 'test'
+        },
       })
 
       return (
@@ -124,7 +141,7 @@ describe('QueryClientProvider', () => {
 
     await waitFor(() => rendered.getByText('test'))
 
-    expect(queryCache.find(key)).toBeDefined()
-    expect(queryCache.find(key)?.options.cacheTime).toBe(Infinity)
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+    expect(queryCache.find({ queryKey: key })?.options.cacheTime).toBe(Infinity)
   })
 })

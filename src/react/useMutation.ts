@@ -1,19 +1,14 @@
 import React from 'react'
 
 import { notifyManager } from '../core/notifyManager'
-import { noop, parseMutationArgs } from '../core/utils'
-import { MutationObserver } from '../core/mutationObserver'
+import { noop } from '../core/utils'
+import {
+  makeMutationObserver,
+  MutationObserver,
+} from '../core/mutationObserver'
 import { useQueryClient } from './QueryClientProvider'
-import {
-  UseMutateFunction,
-  UseMutationOptions,
-  UseMutationResult,
-} from './types'
-import {
-  MutationFunction,
-  MutationKey,
-  MutationObserverResult,
-} from '../core/types'
+import { UseMutateFunction, UseMutationResult } from './types'
+import { MutationObserverResult, MutationOptions } from '../core/types'
 
 // HOOK
 
@@ -23,52 +18,8 @@ export function useMutation<
   TVariables = void,
   TContext = unknown
 >(
-  options: UseMutationOptions<TData, TError, TVariables, TContext>
-): UseMutationResult<TData, TError, TVariables, TContext>
-export function useMutation<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
->(
-  mutationFn: MutationFunction<TData, TVariables>,
-  options?: UseMutationOptions<TData, TError, TVariables, TContext>
-): UseMutationResult<TData, TError, TVariables, TContext>
-export function useMutation<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
->(
-  mutationKey: MutationKey,
-  options?: UseMutationOptions<TData, TError, TVariables, TContext>
-): UseMutationResult<TData, TError, TVariables, TContext>
-export function useMutation<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
->(
-  mutationKey: MutationKey,
-  mutationFn?: MutationFunction<TData, TVariables>,
-  options?: UseMutationOptions<TData, TError, TVariables, TContext>
-): UseMutationResult<TData, TError, TVariables, TContext>
-export function useMutation<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
->(
-  arg1:
-    | MutationKey
-    | MutationFunction<TData, TVariables>
-    | UseMutationOptions<TData, TError, TVariables, TContext>,
-  arg2?:
-    | MutationFunction<TData, TVariables>
-    | UseMutationOptions<TData, TError, TVariables, TContext>,
-  arg3?: UseMutationOptions<TData, TError, TVariables, TContext>
+  options: MutationOptions<TData, TError, TVariables, TContext>
 ): UseMutationResult<TData, TError, TVariables, TContext> {
-  const options = parseMutationArgs(arg1, arg2, arg3)
   const queryClient = useQueryClient()
 
   // Create mutation observer
@@ -76,7 +27,7 @@ export function useMutation<
     MutationObserver<TData, TError, TVariables, TContext>
   >()
   const observer =
-    observerRef.current || new MutationObserver(queryClient, options)
+    observerRef.current || makeMutationObserver(queryClient, options)
   observerRef.current = observer
 
   // Update options

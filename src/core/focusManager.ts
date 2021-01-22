@@ -1,75 +1,87 @@
 import { Subscribable } from './subscribable'
-import { isServer } from './utils'
+import { isServer, noop } from './utils'
 
-class FocusManager extends Subscribable {
-  private focused?: boolean
-  private removeEventListener?: () => void
+export type FocusManager = {
+  subscribe: Subscribable['subscribe']
+  isFocused(): boolean
+}
 
-  protected onSubscribe(): void {
-    if (!this.removeEventListener) {
-      this.setDefaultEventListener()
-    }
+function makeFocusManager() {
+  let focused = false
+  let removeEventListener: () => void = noop
+
+  const subscribable = Subscribable({
+    onSubscribe() {
+      if (!removeEventListener) {
+        setDefaultEventListener()
+      }
+    },
+  })
+
+  const focusManager: FocusManager = {
+    subscribe: subscribable.subscribe,
+    isFocused: () => {
+      if (typeof focused === 'boolean') {
+        return focused
+      }
+
+      // document global can be unavailable in react native
+      if (typeof document === 'undefined') {
+        return true
+      }
+
+      return [undefined, 'visible', 'prerender'].includes(
+        document.visibilityState
+      )
+    },
   }
 
-  setEventListener(
-    setup: (onFocus: () => void) => (focused?: boolean) => void
+  return focusManager
+
+  function setEventListener(
+    setup: (onFocusHandler: () => void) => (val?: boolean) => void
   ): void {
-    if (this.removeEventListener) {
-      this.removeEventListener()
+    if (removeEventListener) {
+      removeEventListener()
     }
-    this.removeEventListener = setup((focused?: boolean) => {
-      if (typeof focused === 'boolean') {
-        this.setFocused(focused)
+    removeEventListener = setup((val?: boolean) => {
+      if (typeof val === 'boolean') {
+        setFocused(val)
       } else {
-        this.onFocus()
+        onFocus()
       }
     })
   }
 
-  setFocused(focused?: boolean): void {
-    this.focused = focused
+  function setFocused(val?: boolean): void {
+    focused = val ?? false
 
     if (focused) {
-      this.onFocus()
+      onFocus()
     }
   }
 
-  onFocus(): void {
-    this.listeners.forEach(listener => {
+  function onFocus(): void {
+    subscribable.listeners.forEach(listener => {
       listener()
     })
   }
 
-  isFocused(): boolean {
-    if (typeof this.focused === 'boolean') {
-      return this.focused
-    }
-
-    // document global can be unavailable in react native
-    if (typeof document === 'undefined') {
-      return true
-    }
-
-    return [undefined, 'visible', 'prerender'].includes(
-      document.visibilityState
-    )
-  }
-
-  private setDefaultEventListener() {
+  function setDefaultEventListener() {
     if (!isServer && window?.addEventListener) {
-      this.setEventListener(onFocus => {
+      setEventListener(handleOnFocus => {
         // Listen to visibillitychange and focus
-        window.addEventListener('visibilitychange', onFocus, false)
-        window.addEventListener('focus', onFocus, false)
+        window.addEventListener('visibilitychange', handleOnFocus, false)
+        window.addEventListener('focus', handleOnFocus, false)
 
         return () => {
           // Be sure to unsubscribe if a new handler is set
-          window.removeEventListener('visibilitychange', onFocus)
-          window.removeEventListener('focus', onFocus)
+          window.removeEventListener('visibilitychange', handleOnFocus)
+          window.removeEventListener('focus', handleOnFocus)
         }
       })
     }
   }
 }
 
-export const focusManager = new FocusManager()
+export const focusManager = makeFocusManager()

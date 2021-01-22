@@ -27,7 +27,7 @@ let errorRate = 0.05;
 let queryTimeMin = 1000;
 let queryTimeMax = 2000;
 
-const queryClient = new QueryClient();
+const queryClient = makeQueryClient();
 
 function Root() {
   const [staleTime, setStaleTime] = React.useState(1000);

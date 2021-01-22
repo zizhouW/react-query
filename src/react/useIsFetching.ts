@@ -1,21 +1,11 @@
 import React from 'react'
 
 import { notifyManager } from '../core/notifyManager'
-import { QueryKey } from '../core/types'
-import { parseFilterArgs, QueryFilters } from '../core/utils'
+import { QueryFilters } from '../core/utils'
 import { useQueryClient } from './QueryClientProvider'
 
-export function useIsFetching(filters?: QueryFilters): number
-export function useIsFetching(
-  queryKey?: QueryKey,
-  filters?: QueryFilters
-): number
-export function useIsFetching(
-  arg1?: QueryKey | QueryFilters,
-  arg2?: QueryFilters
-): number {
+export function useIsFetching(filters?: QueryFilters): number {
   const queryClient = useQueryClient()
-  const [filters] = parseFilterArgs(arg1, arg2)
   const [isFetching, setIsFetching] = React.useState(
     queryClient.isFetching(filters)
   )

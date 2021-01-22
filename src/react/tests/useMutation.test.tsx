@@ -1,7 +1,12 @@
 import { fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 
-import { useMutation, QueryClient, QueryCache, MutationCache } from '../..'
+import {
+  useMutation,
+  makeQueryClient,
+  makeQueryCache,
+  makeMutationCache,
+} from '../..'
 import { UseMutationResult } from '../types'
 import {
   mockConsoleError,
@@ -13,15 +18,15 @@ import {
 } from './utils'
 
 describe('useMutation', () => {
-  const queryCache = new QueryCache()
-  const mutationCache = new MutationCache()
-  const queryClient = new QueryClient({ queryCache, mutationCache })
+  const queryCache = makeQueryCache()
+  const mutationCache = makeMutationCache()
+  const queryClient = makeQueryClient({ queryCache, mutationCache })
 
   it('should be able to reset `data`', async () => {
     function Page() {
-      const { mutate, data = '', reset } = useMutation(() =>
-        Promise.resolve('mutation')
-      )
+      const { mutate, data = '', reset } = useMutation({
+        mutationFn: () => Promise.resolve('mutation'),
+      })
 
       return (
         <div>
@@ -53,10 +58,12 @@ describe('useMutation', () => {
     const consoleMock = mockConsoleError()
 
     function Page() {
-      const { mutate, error, reset } = useMutation<string, Error>(() => {
-        const err = new Error('Expected mock error. All is well!')
-        err.stack = ''
-        return Promise.reject(err)
+      const { mutate, error, reset } = useMutation<string, Error>({
+        mutationFn: () => {
+          const err = new Error('Expected mock error. All is well!')
+          err.stack = ''
+          return Promise.reject(err)
+        },
       })
 
       return (
@@ -96,17 +103,16 @@ describe('useMutation', () => {
     const onSettledMock = jest.fn()
 
     function Page() {
-      const { mutate } = useMutation(
-        async (vars: { count: number }) => Promise.resolve(vars.count),
-        {
-          onSuccess: data => {
-            onSuccessMock(data)
-          },
-          onSettled: data => {
-            onSettledMock(data)
-          },
-        }
-      )
+      const { mutate } = useMutation({
+        mutationFn: async (vars: { count: number }) =>
+          Promise.resolve(vars.count),
+        onSuccess: data => {
+          onSuccessMock(data)
+        },
+        onSettled: data => {
+          onSettledMock(data)
+        },
+      })
 
       return (
         <div>
@@ -147,23 +153,21 @@ describe('useMutation', () => {
     let count = 0
 
     function Page() {
-      const { mutate } = useMutation(
-        (vars: { count: number }) => {
+      const { mutate } = useMutation({
+        mutationFn: (vars: { count: number }) => {
           const error = new Error(
             `Expected mock error. All is well! ${vars.count}`
           )
           error.stack = ''
           return Promise.reject(error)
         },
-        {
-          onError: (error: Error) => {
-            onErrorMock(error.message)
-          },
-          onSettled: (_data, error) => {
-            onSettledMock(error?.message)
-          },
-        }
-      )
+        onError: (error: Error) => {
+          onErrorMock(error.message)
+        },
+        onSettled: (_data, error) => {
+          onSettledMock(error?.message)
+        },
+      })
 
       return (
         <div>
@@ -214,7 +218,8 @@ describe('useMutation', () => {
     const callbacks: string[] = []
 
     function Page() {
-      const { mutateAsync } = useMutation(async (text: string) => text, {
+      const { mutateAsync } = useMutation({
+        mutationFn: async (text: string) => text,
         onSuccess: async () => {
           callbacks.push('useMutation.onSuccess')
         },
@@ -261,17 +266,15 @@ describe('useMutation', () => {
     const callbacks: string[] = []
 
     function Page() {
-      const { mutateAsync } = useMutation(
-        async (_text: string) => Promise.reject('oops'),
-        {
-          onError: async () => {
-            callbacks.push('useMutation.onError')
-          },
-          onSettled: async () => {
-            callbacks.push('useMutation.onSettled')
-          },
-        }
-      )
+      const { mutateAsync } = useMutation({
+        mutationFn: async (_text: string) => Promise.reject('oops'),
+        onError: async () => {
+          callbacks.push('useMutation.onError')
+        },
+        onSettled: async () => {
+          callbacks.push('useMutation.onSettled')
+        },
+      })
 
       React.useEffect(() => {
         setActTimeout(async () => {
@@ -318,7 +321,7 @@ describe('useMutation', () => {
     const states: UseMutationResult<any, any, any, any>[] = []
 
     function Page() {
-      const state = useMutation<string, unknown, string>(key)
+      const state = useMutation<string, unknown, string>({ mutationKey: key })
 
       states.push(state)
 
@@ -349,16 +352,14 @@ describe('useMutation', () => {
     let count = 0
 
     function Page() {
-      const { mutate } = useMutation(
-        (_text: string) => {
+      const { mutate } = useMutation({
+        mutationFn: (_text: string) => {
           count++
           return Promise.reject('oops')
         },
-        {
-          retry: 1,
-          retryDelay: 5,
-        }
-      )
+        retry: 1,
+        retryDelay: 5,
+      })
 
       React.useEffect(() => {
         setActTimeout(() => {
@@ -386,16 +387,14 @@ describe('useMutation', () => {
     const states: UseMutationResult<any, any, any, any>[] = []
 
     function Page() {
-      const state = useMutation(
-        (_text: string) => {
+      const state = useMutation({
+        mutationFn: (_text: string) => {
           count++
           return count > 1 ? Promise.resolve('data') : Promise.reject('oops')
         },
-        {
-          retry: 1,
-          retryDelay: 5,
-        }
-      )
+        retry: 1,
+        retryDelay: 5,
+      })
 
       states.push(state)
 
@@ -459,7 +458,7 @@ describe('useMutation', () => {
 
   it('should not change state if unmounted', async () => {
     function Mutates() {
-      const { mutate } = useMutation(() => sleep(10))
+      const { mutate } = useMutation({ mutationFn: () => sleep(10) })
       return <button onClick={() => mutate()}>mutate</button>
     }
     function Page() {

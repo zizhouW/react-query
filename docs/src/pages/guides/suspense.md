@@ -13,7 +13,7 @@ Global configuration:
 // Configure for all queries
 import { QueryClient, QueryClientProvider } from 'react-query'
 
-const queryClient = new QueryClient({
+const queryClient = makeQueryClient({
   defaultOptions: {
     queries: {
       suspense: true,

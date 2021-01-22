@@ -5,16 +5,16 @@ import React from 'react'
 import { sleep, queryKey, mockConsoleError, renderWithClient } from './utils'
 import {
   useQuery,
-  QueryClient,
-  QueryCache,
+  makeQueryClient,
+  makeQueryCache,
   QueryErrorResetBoundary,
   useQueryErrorResetBoundary,
   UseQueryResult,
 } from '../..'
 
 describe("useQuery's in Suspense mode", () => {
-  const queryCache = new QueryCache()
-  const queryClient = new QueryClient({ queryCache })
+  const queryCache = makeQueryCache()
+  const queryClient = makeQueryClient({ queryCache })
 
   it('should render the correct amount of times in Suspense mode', async () => {
     const key = queryKey()
@@ -28,15 +28,15 @@ describe("useQuery's in Suspense mode", () => {
 
       const [stateKey, setStateKey] = React.useState(key)
 
-      const state = useQuery(
-        stateKey,
-        async () => {
+      const state = useQuery({
+        queryKey: stateKey,
+        queryFn: async () => {
           count++
           await sleep(10)
           return count
         },
-        { suspense: true }
-      )
+        suspense: true,
+      })
 
       states.push(state)
 
@@ -72,7 +72,7 @@ describe("useQuery's in Suspense mode", () => {
     queryFn.mockImplementation(() => sleep(10))
 
     function Page() {
-      useQuery([key], queryFn, { suspense: true })
+      useQuery({ queryKey: [key], queryFn, suspense: true })
 
       return <>rendered</>
     }
@@ -93,7 +93,7 @@ describe("useQuery's in Suspense mode", () => {
     const key = queryKey()
 
     function Page() {
-      useQuery(key, () => sleep(10), { suspense: true })
+      useQuery({ queryKey: key, queryFn: () => sleep(10), suspense: true })
 
       return <>rendered</>
     }
@@ -112,19 +112,19 @@ describe("useQuery's in Suspense mode", () => {
     const rendered = renderWithClient(queryClient, <App />)
 
     expect(rendered.queryByText('rendered')).toBeNull()
-    expect(queryCache.find(key)).toBeFalsy()
+    expect(queryCache.find({ queryKey: key })).toBeFalsy()
 
     fireEvent.click(rendered.getByLabelText('toggle'))
     await waitFor(() => rendered.getByText('rendered'))
 
     // @ts-expect-error
-    expect(queryCache.find(key)?.observers.length).toBe(1)
+    expect(queryCache.find({ queryKey: key })?.observers.length).toBe(1)
 
     fireEvent.click(rendered.getByLabelText('toggle'))
 
     expect(rendered.queryByText('rendered')).toBeNull()
     // @ts-expect-error
-    expect(queryCache.find(key)?.observers.length).toBe(0)
+    expect(queryCache.find({ queryKey: key })?.observers.length).toBe(0)
   })
 
   it('should call onSuccess on the first successful call', async () => {
@@ -133,7 +133,9 @@ describe("useQuery's in Suspense mode", () => {
     const successFn = jest.fn()
 
     function Page() {
-      useQuery([key], () => sleep(10), {
+      useQuery({
+        queryKey: [key],
+        queryFn: () => sleep(10),
         suspense: true,
         onSuccess: successFn,
       })
@@ -160,7 +162,9 @@ describe("useQuery's in Suspense mode", () => {
     const successFn2 = jest.fn()
 
     function FirstComponent() {
-      useQuery(key, () => sleep(10), {
+      useQuery({
+        queryKey: key,
+        queryFn: () => sleep(10),
         suspense: true,
         onSuccess: successFn1,
       })
@@ -169,7 +173,9 @@ describe("useQuery's in Suspense mode", () => {
     }
 
     function SecondComponent() {
-      useQuery(key, () => sleep(20), {
+      useQuery({
+        queryKey: key,
+        queryFn: () => sleep(20),
         suspense: true,
         onSuccess: successFn2,
       })
@@ -199,9 +205,9 @@ describe("useQuery's in Suspense mode", () => {
     const consoleMock = mockConsoleError()
 
     function Page() {
-      useQuery(
-        key,
-        async () => {
+      useQuery({
+        queryKey: key,
+        queryFn: async () => {
           await sleep(10)
 
           if (!succeed) {
@@ -210,11 +216,9 @@ describe("useQuery's in Suspense mode", () => {
             return 'data'
           }
         },
-        {
-          retryDelay: 10,
-          suspense: true,
-        }
-      )
+        retryDelay: 10,
+        suspense: true,
+      })
 
       return <div>rendered</div>
     }
@@ -267,9 +271,9 @@ describe("useQuery's in Suspense mode", () => {
     const consoleMock = mockConsoleError()
 
     function Page() {
-      useQuery(
-        key,
-        async () => {
+      useQuery({
+        queryKey: key,
+        queryFn: async () => {
           await sleep(10)
           if (!succeed) {
             throw new Error('Suspense Error Bingo')
@@ -277,11 +281,9 @@ describe("useQuery's in Suspense mode", () => {
             return 'data'
           }
         },
-        {
-          retry: false,
-          suspense: true,
-        }
-      )
+        retry: false,
+        suspense: true,
+      })
       return <div>rendered</div>
     }
 
@@ -330,19 +332,17 @@ describe("useQuery's in Suspense mode", () => {
     let count = 0
 
     function Component() {
-      const result = useQuery(
-        key,
-        async () => {
+      const result = useQuery({
+        queryKey: key,
+        queryFn: async () => {
           await sleep(100)
           count++
           return count
         },
-        {
-          retry: false,
-          suspense: true,
-          staleTime: 0,
-        }
-      )
+        retry: false,
+        suspense: true,
+        staleTime: 0,
+      })
       return (
         <div>
           <span>data: {result.data}</span>
@@ -388,17 +388,15 @@ describe("useQuery's in Suspense mode", () => {
     const key2 = queryKey()
 
     function Component(props: { queryKey: string }) {
-      const result = useQuery(
-        props.queryKey,
-        async () => {
+      const result = useQuery({
+        queryKey: props.queryKey,
+        queryFn: async () => {
           await sleep(100)
           return props.queryKey
         },
-        {
-          retry: false,
-          suspense: true,
-        }
-      )
+        retry: false,
+        suspense: true,
+      })
       return <div>data: {result.data}</div>
     }
 
@@ -440,9 +438,9 @@ describe("useQuery's in Suspense mode", () => {
     const consoleMock = mockConsoleError()
 
     function Page() {
-      useQuery(
-        key,
-        async () => {
+      useQuery({
+        queryKey: key,
+        queryFn: async () => {
           await sleep(10)
           if (!succeed) {
             throw new Error('Suspense Error Bingo')
@@ -450,11 +448,9 @@ describe("useQuery's in Suspense mode", () => {
             return 'data'
           }
         },
-        {
-          retry: false,
-          suspense: true,
-        }
-      )
+        retry: false,
+        suspense: true,
+      })
       return <div>rendered</div>
     }
 
@@ -506,7 +502,7 @@ describe("useQuery's in Suspense mode", () => {
 
     function Page() {
       const [enabled, setEnabled] = React.useState(false)
-      useQuery([key], queryFn, { suspense: true, enabled })
+      useQuery({ queryKey: [key], queryFn, suspense: true, enabled })
 
       return <button aria-label="fire" onClick={() => setEnabled(true)} />
     }

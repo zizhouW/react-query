@@ -1,13 +1,13 @@
 import { replaceEqualDeep, partialDeepEqual, isPlainObject } from '../utils'
-import { QueryClient, QueryCache, setLogger, Logger } from '../..'
+import { makeQueryClient, makeQueryCache, setLogger, Logger } from '../..'
 import { queryKey } from '../../react/tests/utils'
 
 describe('core/utils', () => {
   it('setLogger should override the default logger', async () => {
     const key = queryKey()
 
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
 
     const logger: Logger = {
       error: jest.fn(),
@@ -17,15 +17,13 @@ describe('core/utils', () => {
 
     setLogger(logger)
 
-    await queryClient.prefetchQuery(
-      key,
-      async () => {
+    await queryClient.prefetchQuery({
+      queryKey: key,
+      queryFn: async () => {
         throw new Error('Test')
       },
-      {
-        retry: 0,
-      }
-    )
+      retry: 0,
+    })
 
     expect(logger.error).toHaveBeenCalled()
 

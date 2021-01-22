@@ -12,7 +12,7 @@ import { request, gql } from "graphql-request";
 
 const endpoint = "https://graphqlzero.almansi.me/api";
 
-const queryClient = new QueryClient();
+const queryClient = makeQueryClient();
 
 function App() {
   const [postId, setPostId] = React.useState(-1);

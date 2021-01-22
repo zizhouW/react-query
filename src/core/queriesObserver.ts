@@ -2,69 +2,76 @@ import { difference, getQueryKeyHashFn, replaceAt } from './utils'
 import { notifyManager } from './notifyManager'
 import type { QueryObserverOptions, QueryObserverResult } from './types'
 import type { QueryClient } from './queryClient'
-import { QueryObserver } from './queryObserver'
+import { makeQueryObserver, QueryObserver } from './queryObserver'
 import { Subscribable } from './subscribable'
 
 type QueriesObserverListener = (result: QueryObserverResult[]) => void
 
-export class QueriesObserver extends Subscribable<QueriesObserverListener> {
-  private client: QueryClient
-  private result: QueryObserverResult[]
-  private queries: QueryObserverOptions[]
-  private observers: QueryObserver[]
+export type QueriesObserver = {
+  subscribe: Subscribable<QueriesObserverListener>['subscribe']
+  hasListeners: Subscribable<QueriesObserverListener>['hasListeners']
+  destroy(): void
+  setQueries(queries: QueryObserverOptions[]): void
+  getCurrentResult(): QueryObserverResult[]
+}
 
-  constructor(client: QueryClient, queries?: QueryObserverOptions[]) {
-    super()
+export function makeQueriesObserver(
+  client: QueryClient,
+  initialQueries?: QueryObserverOptions[]
+): QueriesObserver {
+  let queries: QueryObserverOptions[] = initialQueries || []
+  let result: QueryObserverResult[] = []
+  let observers: QueryObserver[] = []
 
-    this.client = client
-    this.queries = queries || []
-    this.result = []
-    this.observers = []
-
-    // Subscribe to queries
-    this.updateObservers()
-  }
-
-  protected onSubscribe(): void {
-    if (this.listeners.length === 1) {
-      this.observers.forEach(observer => {
-        observer.subscribe(result => {
-          this.onUpdate(observer, result)
+  const subscribable = Subscribable<QueriesObserverListener>({
+    onSubscribe() {
+      if (subscribable.listeners.length === 1) {
+        observers.forEach(observer => {
+          observer.subscribe(res => {
+            onUpdate(observer, res)
+          })
         })
+      }
+    },
+
+    onUnsubscribe() {
+      if (!subscribable.listeners.length) {
+        queriesObserver.destroy()
+      }
+    },
+  })
+
+  // Subscribe to queries
+  updateObservers()
+
+  const queriesObserver: QueriesObserver = {
+    subscribe: subscribable.subscribe,
+    hasListeners: subscribable.hasListeners,
+    destroy(): void {
+      subscribable.listeners = []
+      observers.forEach(observer => {
+        observer.destroy()
       })
-    }
+    },
+    setQueries(newQueries: QueryObserverOptions[]): void {
+      queries = newQueries
+      updateObservers()
+    },
+    getCurrentResult(): QueryObserverResult[] {
+      return result
+    },
   }
 
-  protected onUnsubscribe(): void {
-    if (!this.listeners.length) {
-      this.destroy()
-    }
-  }
+  return queriesObserver
 
-  destroy(): void {
-    this.listeners = []
-    this.observers.forEach(observer => {
-      observer.destroy()
-    })
-  }
-
-  setQueries(queries: QueryObserverOptions[]): void {
-    this.queries = queries
-    this.updateObservers()
-  }
-
-  getCurrentResult(): QueryObserverResult[] {
-    return this.result
-  }
-
-  private updateObservers(): void {
+  function updateObservers(): void {
     let hasIndexChange = false
 
-    const prevObservers = this.observers
-    const newObservers = this.queries.map((options, i) => {
+    const prevObservers = observers
+    const newObservers = queries.map((options, i) => {
       let observer: QueryObserver | undefined = prevObservers[i]
 
-      const defaultedOptions = this.client.defaultQueryObserverOptions(options)
+      const defaultedOptions = client.defaultQueryObserverOptions(options)
       const hashFn = getQueryKeyHashFn(defaultedOptions)
       defaultedOptions.queryHash = hashFn(defaultedOptions.queryKey!)
 
@@ -83,17 +90,17 @@ export class QueriesObserver extends Subscribable<QueriesObserverListener> {
         return observer
       }
 
-      return new QueryObserver(this.client, defaultedOptions)
+      return makeQueryObserver(client, defaultedOptions)
     })
 
     if (prevObservers.length === newObservers.length && !hasIndexChange) {
       return
     }
 
-    this.observers = newObservers
-    this.result = newObservers.map(observer => observer.getCurrentResult())
+    observers = newObservers
+    result = newObservers.map(observer => observer.getCurrentResult())
 
-    if (!this.listeners.length) {
+    if (!subscribable.listeners.length) {
       return
     }
 
@@ -102,26 +109,26 @@ export class QueriesObserver extends Subscribable<QueriesObserverListener> {
     })
 
     difference(newObservers, prevObservers).forEach(observer => {
-      observer.subscribe(result => {
-        this.onUpdate(observer, result)
+      observer.subscribe(res => {
+        onUpdate(observer, res)
       })
     })
 
-    this.notify()
+    notify()
   }
 
-  private onUpdate(observer: QueryObserver, result: QueryObserverResult): void {
-    const index = this.observers.indexOf(observer)
+  function onUpdate(observer: QueryObserver, res: QueryObserverResult): void {
+    const index = observers.indexOf(observer)
     if (index !== -1) {
-      this.result = replaceAt(this.result, index, result)
-      this.notify()
+      result = replaceAt(result, index, res)
+      notify()
     }
   }
 
-  private notify(): void {
+  function notify(): void {
     notifyManager.batch(() => {
-      this.listeners.forEach(listener => {
-        listener(this.result)
+      subscribable.listeners.forEach(listener => {
+        listener(result)
       })
     })
   }

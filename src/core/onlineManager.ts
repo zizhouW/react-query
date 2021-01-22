@@ -1,68 +1,80 @@
 import { Subscribable } from './subscribable'
-import { isServer } from './utils'
+import { isServer, noop } from './utils'
 
-class OnlineManager extends Subscribable {
-  private online?: boolean
-  private removeEventListener?: () => void
+export type OnlineManager = {
+  subscribe: Subscribable
+  isOnline(): boolean
+  setOnline(val?: boolean): void
+}
 
-  protected onSubscribe(): void {
-    if (!this.removeEventListener) {
-      this.setDefaultEventListener()
-    }
-  }
+function OnlineManager() {
+  let online = false
+  let removeEventListener: () => void = noop
 
-  setEventListener(
-    setup: (setOnline: () => void) => (online?: boolean) => void
-  ): void {
-    if (this.removeEventListener) {
-      this.removeEventListener()
-    }
-    this.removeEventListener = setup((online?: boolean) => {
-      if (typeof online === 'boolean') {
-        this.setOnline(online)
-      } else {
-        this.onOnline()
+  const subscribable = Subscribable({
+    onSubscribe() {
+      if (!removeEventListener) {
+        setDefaultEventListener()
       }
-    })
+    },
+  })
+
+  const onlineManager = {
+    subscribe: subscribable.subscribe,
+    isOnline: () => {
+      if (typeof online === 'boolean') {
+        return online
+      }
+
+      return navigator.onLine === undefined || navigator.onLine
+    },
+    setOnline: (val?: boolean): void => {
+      online = val ?? false
+
+      if (online) {
+        onOnline()
+      }
+    },
   }
 
-  setOnline(online?: boolean): void {
-    this.online = online
+  return onlineManager
 
-    if (online) {
-      this.onOnline()
-    }
-  }
-
-  onOnline(): void {
-    this.listeners.forEach(listener => {
+  function onOnline(): void {
+    subscribable.listeners.forEach(listener => {
       listener()
     })
   }
 
-  isOnline(): boolean {
-    if (typeof this.online === 'boolean') {
-      return this.online
+  function setEventListener(
+    setup: (handler: () => void) => (val?: boolean) => void
+  ): void {
+    if (removeEventListener) {
+      removeEventListener()
     }
-
-    return navigator.onLine === undefined || navigator.onLine
+    removeEventListener = setup((val?: boolean) => {
+      if (typeof val === 'boolean') {
+        onlineManager.setOnline(val)
+      } else {
+        onOnline()
+      }
+    })
   }
 
-  private setDefaultEventListener() {
+  function setDefaultEventListener() {
     if (!isServer && window?.addEventListener) {
-      this.setEventListener(onOnline => {
+      setEventListener(handleOnlineChange => {
         // Listen to online
-        window.addEventListener('online', onOnline, false)
-        window.addEventListener('offline', onOnline, false)
+        window.addEventListener('online', handleOnlineChange, false)
+        window.addEventListener('offline', handleOnlineChange, false)
 
         return () => {
           // Be sure to unsubscribe if a new handler is set
-          window.removeEventListener('online', onOnline)
-          window.removeEventListener('offline', onOnline)
+          window.removeEventListener('online', handleOnlineChange)
+          window.removeEventListener('offline', handleOnlineChange)
         }
       })
     }
   }
 }
 
-export const onlineManager = new OnlineManager()
+export const onlineManager = OnlineManager()

@@ -21,157 +21,168 @@ interface NotifyOptions {
   onSuccess?: boolean
 }
 
-// CLASS
-
-export class MutationObserver<
+export type MutationObserver<
   TData = unknown,
   TError = unknown,
   TVariables = void,
   TContext = unknown
-> extends Subscribable<
-  MutationObserverListener<TData, TError, TVariables, TContext>
-> {
-  options!: MutationObserverOptions<TData, TError, TVariables, TContext>
-
-  private client: QueryClient
-  private currentResult!: MutationObserverResult<
-    TData,
-    TError,
-    TVariables,
-    TContext
-  >
-  private currentMutation?: Mutation<TData, TError, TVariables, TContext>
-  private mutateOptions?: MutateOptions<TData, TError, TVariables, TContext>
-
-  constructor(
-    client: QueryClient,
-    options: MutationObserverOptions<TData, TError, TVariables, TContext>
-  ) {
-    super()
-
-    this.client = client
-    this.setOptions(options)
-    this.bindMethods()
-    this.updateResult()
-  }
-
-  protected bindMethods(): void {
-    this.mutate = this.mutate.bind(this)
-    this.reset = this.reset.bind(this)
-  }
-
+> = {
+  options: MutationObserverOptions<TData, TError, TVariables, TContext>
   setOptions(
     options?: MutationObserverOptions<TData, TError, TVariables, TContext>
-  ) {
-    this.options = this.client.defaultMutationOptions(options)
-  }
-
-  protected onUnsubscribe(): void {
-    if (!this.listeners.length) {
-      this.currentMutation?.removeObserver(this)
-    }
-  }
-
-  onMutationUpdate(action: Action<TData, TError, TVariables, TContext>): void {
-    this.updateResult()
-
-    // Determine which callbacks to trigger
-    const notifyOptions: NotifyOptions = {
-      listeners: true,
-    }
-
-    if (action.type === 'success') {
-      notifyOptions.onSuccess = true
-    } else if (action.type === 'error') {
-      notifyOptions.onError = true
-    }
-
-    this.notify(notifyOptions)
-  }
-
+  ): void
+  onMutationUpdate(action: Action<TData, TError, TVariables, TContext>): void
   getCurrentResult(): MutationObserverResult<
     TData,
     TError,
     TVariables,
     TContext
-  > {
-    return this.currentResult
-  }
-
-  reset(): void {
-    this.currentMutation = undefined
-    this.updateResult()
-    this.notify({ listeners: true })
-  }
-
+  >
+  reset(): void
   mutate(
     variables?: TVariables,
     options?: MutateOptions<TData, TError, TVariables, TContext>
-  ): Promise<TData> {
-    this.mutateOptions = options
+  ): Promise<TData>
+  subscribe: Subscribable<
+    MutationObserverListener<TData, TError, TVariables, TContext>
+  >['subscribe']
+  hasListeners: Subscribable<
+    MutationObserverListener<TData, TError, TVariables, TContext>
+  >['hasListeners']
+}
 
-    if (this.currentMutation) {
-      this.currentMutation.removeObserver(this)
-    }
+export function makeMutationObserver<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+>(
+  client: QueryClient,
+  options: MutationObserverOptions<TData, TError, TVariables, TContext>
+) {
+  let currentResult: MutationObserverResult<TData, TError, TVariables, TContext>
+  let currentMutation: Mutation<TData, TError, TVariables, TContext> | undefined
+  let mutateOptions:
+    | MutateOptions<TData, TError, TVariables, TContext>
+    | undefined
 
-    this.currentMutation = this.client.getMutationCache().build(this.client, {
-      ...this.options,
-      variables: variables ?? this.options.variables,
-    })
+  const subscribable = Subscribable<
+    MutationObserverListener<TData, TError, TVariables, TContext>
+  >({
+    onUnsubscribe: () => {
+      if (!subscribable.listeners.length) {
+        currentMutation?.removeObserver(mutationObserver)
+      }
+    },
+  })
 
-    this.currentMutation.addObserver(this)
+  const mutationObserver: MutationObserver<
+    TData,
+    TError,
+    TVariables,
+    TContext
+  > = {
+    options,
+    subscribe: subscribable.subscribe,
+    hasListeners: subscribable.hasListeners,
+    setOptions: newOptions => {
+      mutationObserver.options = client.defaultMutationOptions(newOptions)
+    },
+    onMutationUpdate: action => {
+      updateResult()
 
-    return this.currentMutation.execute()
+      // Determine which callbacks to trigger
+      const notifyOptions: NotifyOptions = {
+        listeners: true,
+      }
+
+      if (action.type === 'success') {
+        notifyOptions.onSuccess = true
+      } else if (action.type === 'error') {
+        notifyOptions.onError = true
+      }
+
+      notify(notifyOptions)
+    },
+    getCurrentResult: () => {
+      return currentResult
+    },
+    reset: () => {
+      currentMutation = undefined
+      updateResult()
+      notify({ listeners: true })
+    },
+    mutate: (variables, newMutateOptions) => {
+      mutateOptions = newMutateOptions
+
+      if (currentMutation) {
+        currentMutation.removeObserver(mutationObserver)
+      }
+
+      currentMutation = client.getMutationCache().build(client, {
+        ...mutationObserver.options,
+        variables: variables ?? mutationObserver.options.variables,
+      })
+
+      currentMutation!.addObserver(mutationObserver)
+
+      return currentMutation!.execute()
+    },
   }
 
-  private updateResult(): void {
-    const state = this.currentMutation
-      ? this.currentMutation.state
+  mutationObserver.setOptions(options)
+  updateResult()
+
+  return mutationObserver
+
+  function updateResult(): void {
+    const state = currentMutation
+      ? currentMutation.state
       : getDefaultState<TData, TError, TVariables, TContext>()
 
-    this.currentResult = {
+    currentResult = {
       ...state,
       ...getStatusProps(state.status),
-      mutate: this.mutate,
-      reset: this.reset,
+      mutate: mutationObserver.mutate,
+      reset: mutationObserver.reset,
     }
   }
 
-  private notify(options: NotifyOptions) {
+  function notify(notifyOptions: NotifyOptions) {
     notifyManager.batch(() => {
       // First trigger the mutate callbacks
-      if (this.mutateOptions) {
-        if (options.onSuccess) {
-          this.mutateOptions.onSuccess?.(
-            this.currentResult.data!,
-            this.currentResult.variables!,
-            this.currentResult.context!
+      if (mutateOptions) {
+        if (notifyOptions.onSuccess) {
+          mutateOptions.onSuccess?.(
+            currentResult.data!,
+            currentResult.variables!,
+            currentResult.context!
           )
-          this.mutateOptions.onSettled?.(
-            this.currentResult.data!,
+          mutateOptions.onSettled?.(
+            currentResult.data!,
             null,
-            this.currentResult.variables!,
-            this.currentResult.context
+            currentResult.variables!,
+            currentResult.context
           )
-        } else if (options.onError) {
-          this.mutateOptions.onError?.(
-            this.currentResult.error!,
-            this.currentResult.variables!,
-            this.currentResult.context
+        } else if (notifyOptions.onError) {
+          mutateOptions.onError?.(
+            currentResult.error!,
+            currentResult.variables!,
+            currentResult.context
           )
-          this.mutateOptions.onSettled?.(
+          mutateOptions.onSettled?.(
             undefined,
-            this.currentResult.error,
-            this.currentResult.variables!,
-            this.currentResult.context
+            currentResult.error,
+            currentResult.variables!,
+            currentResult.context
           )
         }
       }
 
       // Then trigger the listeners
-      if (options.listeners) {
-        this.listeners.forEach(listener => {
-          listener(this.currentResult)
+      if (subscribable.listeners) {
+        subscribable.listeners.forEach(listener => {
+          listener(currentResult)
         })
       }
     })

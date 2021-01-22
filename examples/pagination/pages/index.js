@@ -8,7 +8,7 @@ import {
 } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
 
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 
 export default function App() {
   return (

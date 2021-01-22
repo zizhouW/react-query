@@ -1,13 +1,13 @@
-import { QueryClient } from '../..'
+import { makeQueryClient, QueryClient } from '../..'
 import { mockConsoleError, queryKey, sleep } from '../../react/tests/utils'
 import { MutationState } from '../mutation'
-import { MutationObserver } from '../mutationObserver'
+import { makeMutationObserver } from '../mutationObserver'
 
 describe('mutations', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
-    queryClient = new QueryClient()
+    queryClient = makeQueryClient()
     queryClient.mount()
   })
 
@@ -40,7 +40,7 @@ describe('mutations', () => {
   })
 
   test('mutation should set correct success states', async () => {
-    const mutation = new MutationObserver(queryClient, {
+    const mutation = makeMutationObserver(queryClient, {
       mutationFn: async (text: string) => {
         await sleep(10)
         return text
@@ -131,7 +131,7 @@ describe('mutations', () => {
   test('mutation should set correct error states', async () => {
     const consoleMock = mockConsoleError()
 
-    const mutation = new MutationObserver(queryClient, {
+    const mutation = makeMutationObserver(queryClient, {
       mutationFn: async () => {
         await sleep(20)
         return Promise.reject('err')

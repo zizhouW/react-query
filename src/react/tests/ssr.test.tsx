@@ -7,17 +7,22 @@ import React from 'react'
 import { renderToString } from 'react-dom/server'
 
 import { sleep, queryKey } from './utils'
-import { useQuery, QueryClient, QueryClientProvider, QueryCache } from '../..'
+import {
+  useQuery,
+  makeQueryClient,
+  QueryClientProvider,
+  makeQueryCache,
+} from '../..'
 
 describe('Server Side Rendering', () => {
   it('should not trigger fetch', () => {
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     const key = queryKey()
     const queryFn = jest.fn()
 
     function Page() {
-      const query = useQuery(key, queryFn)
+      const query = useQuery({ queryKey: key, queryFn })
 
       const content = `status ${query.status}`
 
@@ -40,24 +45,27 @@ describe('Server Side Rendering', () => {
   })
 
   it('should add prefetched data to cache', async () => {
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     const key = queryKey()
-    const fetchFn = () => Promise.resolve('data')
-    const data = await queryClient.fetchQuery(key, fetchFn)
+    const queryFn = () => Promise.resolve('data')
+    const data = await queryClient.fetchQuery({
+      queryKey: key,
+      queryFn,
+    })
     expect(data).toBe('data')
-    expect(queryCache.find(key)?.state.data).toBe('data')
+    expect(queryCache.find({ queryKey: key })?.state.data).toBe('data')
     queryCache.clear()
   })
 
   it('should return existing data from the cache', async () => {
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
     const key = queryKey()
     const queryFn = jest.fn(() => sleep(10))
 
     function Page() {
-      const query = useQuery(key, queryFn)
+      const query = useQuery({ queryKey: key, queryFn })
 
       const content = `status ${query.status}`
 
@@ -68,7 +76,7 @@ describe('Server Side Rendering', () => {
       )
     }
 
-    await queryClient.prefetchQuery(key, queryFn)
+    await queryClient.prefetchQuery({ queryKey: key, queryFn })
 
     const markup = renderToString(
       <QueryClientProvider client={queryClient}>
@@ -84,12 +92,14 @@ describe('Server Side Rendering', () => {
   it('should add initialData to the cache', () => {
     const key = queryKey()
 
-    const queryCache = new QueryCache()
-    const queryClient = new QueryClient({ queryCache })
+    const queryCache = makeQueryCache()
+    const queryClient = makeQueryClient({ queryCache })
 
     function Page() {
       const [page, setPage] = React.useState(1)
-      const { data } = useQuery([key, page], async () => page, {
+      const { data } = useQuery({
+        queryKey: [key, page],
+        queryFn: async () => page,
         initialData: 1,
       })
 

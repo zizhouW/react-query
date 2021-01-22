@@ -10,7 +10,7 @@ The `QueryClient` can be used to interact with a cache:
 ```js
 import { QueryClient } from 'react-query'
 
-const queryClient = new QueryClient({
+const queryClient = makeQueryClient({
   defaultOptions: {
     queries: {
       staleTime: Infinity,

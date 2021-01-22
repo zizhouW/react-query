@@ -20,7 +20,7 @@ import {
 import { getTodos, postTodo } from '../my-api'
 
 // Create a client
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 
 function App() {
   return (

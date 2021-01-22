@@ -56,7 +56,8 @@
   ],
   "dependencies": {
     "@babel/runtime": "^7.5.5",
-    "match-sorter": "^6.0.2"
+    "match-sorter": "^6.0.2",
+    "type-fest": "^0.20.2"
   },
   "peerDependencies": {
     "react": "^16.8.0 || ^17.0.0"

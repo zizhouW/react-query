@@ -1,9 +1,5 @@
 import type { Query } from './query'
 import type {
-  MutationFunction,
-  MutationKey,
-  MutationOptions,
-  QueryFunction,
   QueryKey,
   QueryKeyHashFunction,
   QueryOptions,
@@ -14,25 +10,21 @@ import type {
 
 export interface QueryFilters {
   /**
-   * Include or exclude active queries
+   * Include queries matching this query key
    */
-  active?: boolean
+  queryKey?: QueryKey
   /**
    * Match query key exactly
    */
   exact?: boolean
   /**
+   * Include or exclude active queries
+   */
+  active?: boolean
+  /**
    * Include or exclude inactive queries
    */
   inactive?: boolean
-  /**
-   * Include queries matching this predicate function
-   */
-  predicate?: (query: Query) => boolean
-  /**
-   * Include queries matching this query key
-   */
-  queryKey?: QueryKey
   /**
    * Include or exclude stale queries
    */
@@ -41,6 +33,10 @@ export interface QueryFilters {
    * Include or exclude fetching queries
    */
   fetching?: boolean
+  /**
+   * Include queries matching this predicate function
+   */
+  predicate?: (query: Query) => boolean
 }
 
 export type DataUpdateFunction<TInput, TOutput> = (input: TInput) => TOutput
@@ -86,56 +82,6 @@ export function replaceAt<T>(array: T[], index: number, value: T): T[] {
 
 export function timeUntilStale(updatedAt: number, staleTime?: number): number {
   return Math.max(updatedAt + (staleTime || 0) - Date.now(), 0)
-}
-
-export function parseQueryArgs<TOptions extends QueryOptions<any, any, any>>(
-  arg1: QueryKey | TOptions,
-  arg2?: QueryFunction<any> | TOptions,
-  arg3?: TOptions
-): TOptions {
-  if (!isQueryKey(arg1)) {
-    return arg1 as TOptions
-  }
-
-  if (typeof arg2 === 'function') {
-    return { ...arg3, queryKey: arg1, queryFn: arg2 } as TOptions
-  }
-
-  return { ...arg2, queryKey: arg1 } as TOptions
-}
-
-export function parseMutationArgs<
-  TOptions extends MutationOptions<any, any, any, any>
->(
-  arg1: MutationKey | MutationFunction<any, any> | TOptions,
-  arg2?: MutationFunction<any, any> | TOptions,
-  arg3?: TOptions
-): TOptions {
-  if (isQueryKey(arg1)) {
-    if (typeof arg2 === 'function') {
-      return { ...arg3, mutationKey: arg1, mutationFn: arg2 } as TOptions
-    }
-    return { ...arg2, mutationKey: arg1 } as TOptions
-  }
-
-  if (typeof arg1 === 'function') {
-    return { ...arg2, mutationFn: arg1 } as TOptions
-  }
-
-  return { ...arg1 } as TOptions
-}
-
-export function parseFilterArgs<
-  TFilters extends QueryFilters,
-  TOptions = unknown
->(
-  arg1?: QueryKey | TFilters,
-  arg2?: TFilters | TOptions,
-  arg3?: TOptions
-): [TFilters, TOptions | undefined] {
-  return (isQueryKey(arg1)
-    ? [{ ...arg2, queryKey: arg1 }, arg3]
-    : [arg1 || {}, arg2]) as [TFilters, TOptions]
 }
 
 export function matchQuery(

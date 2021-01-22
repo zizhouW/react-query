@@ -1,7 +1,7 @@
 import React from 'react'
 
 import { notifyManager } from '../core/notifyManager'
-import { QueriesObserver } from '../core/queriesObserver'
+import { makeQueriesObserver, QueriesObserver } from '../core/queriesObserver'
 import { useQueryClient } from './QueryClientProvider'
 import { UseQueryOptions, UseQueryResult } from './types'
 
@@ -11,7 +11,7 @@ export function useQueries(queries: UseQueryOptions[]): UseQueryResult[] {
   // Create queries observer
   const observerRef = React.useRef<QueriesObserver>()
   const observer =
-    observerRef.current || new QueriesObserver(queryClient, queries)
+    observerRef.current || makeQueriesObserver(queryClient, queries)
   observerRef.current = observer
 
   // Update queries

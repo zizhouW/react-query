@@ -5,14 +5,14 @@ import React from 'react'
 import { sleep, queryKey, mockConsoleError, renderWithClient } from './utils'
 import {
   useQuery,
-  QueryClient,
-  QueryCache,
+  makeQueryClient,
+  makeQueryCache,
   QueryErrorResetBoundary,
 } from '../..'
 
 describe('QueryErrorResetBoundary', () => {
-  const queryCache = new QueryCache()
-  const queryClient = new QueryClient({ queryCache })
+  const queryCache = makeQueryCache()
+  const queryClient = makeQueryClient({ queryCache })
 
   it('should retry fetch if the reset error boundary has been reset', async () => {
     const key = queryKey()
@@ -21,9 +21,9 @@ describe('QueryErrorResetBoundary', () => {
     const consoleMock = mockConsoleError()
 
     function Page() {
-      const { data } = useQuery(
-        key,
-        async () => {
+      const { data } = useQuery({
+        queryKey: key,
+        queryFn: async () => {
           await sleep(10)
           if (!succeed) {
             throw new Error('Error')
@@ -31,11 +31,9 @@ describe('QueryErrorResetBoundary', () => {
             return 'data'
           }
         },
-        {
-          retry: false,
-          useErrorBoundary: true,
-        }
-      )
+        retry: false,
+        useErrorBoundary: true,
+      })
       return <div>{data}</div>
     }
 
@@ -79,18 +77,16 @@ describe('QueryErrorResetBoundary', () => {
     let fetchCount = 0
 
     function Page() {
-      const { data } = useQuery(
-        key,
-        async () => {
+      const { data } = useQuery({
+        queryKey: key,
+        queryFn: async () => {
           fetchCount++
           await sleep(10)
           throw new Error('Error')
         },
-        {
-          retry: false,
-          useErrorBoundary: true,
-        }
-      )
+        retry: false,
+        useErrorBoundary: true,
+      })
       return <div>{data}</div>
     }
 
@@ -138,9 +134,9 @@ describe('QueryErrorResetBoundary', () => {
     let renders = 0
 
     function Page() {
-      const { data } = useQuery(
-        key,
-        async () => {
+      const { data } = useQuery({
+        queryKey: key,
+        queryFn: async () => {
           fetchCount++
           await sleep(10)
           if (fetchCount > 2) {
@@ -149,11 +145,9 @@ describe('QueryErrorResetBoundary', () => {
             throw new Error('Error')
           }
         },
-        {
-          retry: false,
-          suspense: true,
-        }
-      )
+        retry: false,
+        suspense: true,
+      })
       renders++
       return <div>{data}</div>
     }

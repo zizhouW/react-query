@@ -1,34 +1,38 @@
 type Listener = () => void
 
-export class Subscribable<TListener extends Function = Listener> {
-  protected listeners: TListener[]
+interface SubscribableOptions {
+  onSubscribe?: () => void
+  onUnsubscribe?: () => void
+}
 
-  constructor() {
-    this.listeners = []
+export type Subscribable<TListener extends Function = Listener> = {
+  listeners: TListener[]
+  subscribe(listener?: TListener): () => void
+  hasListeners(): boolean
+}
+
+export function Subscribable<TListener extends Function = Listener>({
+  onSubscribe,
+  onUnsubscribe,
+}: SubscribableOptions = {}) {
+  const subscribable: Subscribable<TListener> = {
+    listeners: [],
+    subscribe: listener => {
+      const callback = listener || (() => undefined)
+
+      subscribable.listeners.push(callback as TListener)
+
+      onSubscribe?.()
+
+      return () => {
+        subscribable.listeners = subscribable.listeners.filter(
+          x => x !== callback
+        )
+        onUnsubscribe?.()
+      }
+    },
+    hasListeners: () => subscribable.listeners.length > 0,
   }
 
-  subscribe(listener?: TListener): () => void {
-    const callback = listener || (() => undefined)
-
-    this.listeners.push(callback as TListener)
-
-    this.onSubscribe()
-
-    return () => {
-      this.listeners = this.listeners.filter(x => x !== callback)
-      this.onUnsubscribe()
-    }
-  }
-
-  hasListeners(): boolean {
-    return this.listeners.length > 0
-  }
-
-  protected onSubscribe(): void {
-    // Do nothing
-  }
-
-  protected onUnsubscribe(): void {
-    // Do nothing
-  }
+  return subscribable
 }

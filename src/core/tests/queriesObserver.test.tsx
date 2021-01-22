@@ -1,11 +1,16 @@
 import { sleep, queryKey } from '../../react/tests/utils'
-import { QueryClient, QueriesObserver, QueryObserverResult } from '../..'
+import {
+  makeQueryClient,
+  QueryClient,
+  makeQueriesObserver,
+  QueryObserverResult,
+} from '../..'
 
 describe('queriesObserver', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
-    queryClient = new QueryClient()
+    queryClient = makeQueryClient()
     queryClient.mount()
   })
 
@@ -18,7 +23,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = new QueriesObserver(queryClient, [
+    const observer = makeQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -36,7 +41,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = new QueriesObserver(queryClient, [
+    const observer = makeQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -63,7 +68,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = new QueriesObserver(queryClient, [
+    const observer = makeQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -76,11 +81,11 @@ describe('queriesObserver', () => {
     observer.setQueries([{ queryKey: key2, queryFn: queryFn2 }])
     await sleep(1)
     const queryCache = queryClient.getQueryCache()
-    expect(queryCache.find(key1, { active: true })).toBeUndefined()
-    expect(queryCache.find(key2, { active: true })).toBeDefined()
+    expect(queryCache.find({ queryKey: key1, active: true })).toBeUndefined()
+    expect(queryCache.find({ queryKey: key2, active: true })).toBeDefined()
     unsubscribe()
-    expect(queryCache.find(key1, { active: true })).toBeUndefined()
-    expect(queryCache.find(key2, { active: true })).toBeUndefined()
+    expect(queryCache.find({ queryKey: key1, active: true })).toBeUndefined()
+    expect(queryCache.find({ queryKey: key2, active: true })).toBeUndefined()
     expect(results.length).toBe(4)
     expect(results).toMatchObject([
       [{ data: undefined }, { data: undefined }],
@@ -95,7 +100,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = new QueriesObserver(queryClient, [
+    const observer = makeQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -125,7 +130,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = new QueriesObserver(queryClient, [
+    const observer = makeQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -154,7 +159,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn()
     const queryFn2 = jest.fn()
-    const observer = new QueriesObserver(queryClient, [
+    const observer = makeQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])

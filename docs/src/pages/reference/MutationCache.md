@@ -10,7 +10,7 @@ The `MutationCache` is the storage for mutations.
 ```js
 import { MutationCache } from 'react-query'
 
-const mutationCache = new MutationCache({
+const mutationCache = makeMutationCache({
   onError: error => {
     console.log(error)
   },

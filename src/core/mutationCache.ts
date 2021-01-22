@@ -1,105 +1,118 @@
 import type { MutationOptions } from './types'
 import type { QueryClient } from './queryClient'
 import { notifyManager } from './notifyManager'
-import { Mutation, MutationState } from './mutation'
+import { makeMutation, Mutation, MutationState } from './mutation'
 import { noop } from './utils'
 import { Subscribable } from './subscribable'
 
 // TYPES
 
 interface MutationCacheConfig {
-  onError?: (
+  onError?: <TMutation extends Mutation<unknown, unknown, unknown, unknown>>(
     error: unknown,
     variables: unknown,
     context: unknown,
-    mutation: Mutation<unknown, unknown, unknown, unknown>
+    mutation: TMutation
   ) => void
 }
 
 type MutationCacheListener = (mutation?: Mutation) => void
 
-// CLASS
-
-export class MutationCache extends Subscribable<MutationCacheListener> {
+export type MutationCache = {
   config: MutationCacheConfig
-
-  private mutations: Mutation<any, any, any, any>[]
-  private mutationId: number
-
-  constructor(config?: MutationCacheConfig) {
-    super()
-    this.config = config || {}
-    this.mutations = []
-    this.mutationId = 0
-  }
-
   build<TData, TError, TVariables, TContext>(
     client: QueryClient,
     options: MutationOptions<TData, TError, TVariables, TContext>,
     state?: MutationState<TData, TError, TVariables, TContext>
-  ): Mutation<TData, TError, TVariables, TContext> {
-    const mutation = new Mutation({
-      mutationCache: this,
-      mutationId: ++this.mutationId,
-      options: client.defaultMutationOptions(options),
-      state,
-      defaultOptions: options.mutationKey
-        ? client.getMutationDefaults(options.mutationKey)
-        : undefined,
-    })
+  ): Mutation<TData, TError, TVariables, TContext>
+  add(mutation: Mutation<any, any, any, any>): void
+  remove(mutation: Mutation<any, any, any, any>): void
+  clear(): void
+  getAll(): Mutation[]
+  notify(mutation?: Mutation<any, any, any, any>): void
+  onFocus(): void
+  onOnline(): void
+  resumePausedMutations(): Promise<void>
+}
 
-    this.add(mutation)
+export function makeMutationCache(userConfig?: MutationCacheConfig) {
+  let mutations: Mutation<any, any, any, any>[] = []
+  let mutationId = 0
 
-    return mutation
-  }
+  const subscribable = Subscribable<MutationCacheListener>()
 
-  add(mutation: Mutation<any, any, any, any>): void {
-    this.mutations.push(mutation)
-    this.notify(mutation)
-  }
-
-  remove(mutation: Mutation<any, any, any, any>): void {
-    this.mutations = this.mutations.filter(x => x !== mutation)
-    mutation.cancel()
-    this.notify(mutation)
-  }
-
-  clear(): void {
-    notifyManager.batch(() => {
-      this.mutations.forEach(mutation => {
-        this.remove(mutation)
+  const mutationCache: MutationCache = {
+    config: userConfig || {},
+    build<TData, TError, TVariables, TContext>(
+      client: QueryClient,
+      options: MutationOptions<TData, TError, TVariables, TContext>,
+      state?: MutationState<TData, TError, TVariables, TContext>
+    ): Mutation<TData, TError, TVariables, TContext> {
+      const mutation = makeMutation<TData, TError, TVariables, TContext>({
+        mutationCache,
+        mutationId: ++mutationId,
+        options: client.defaultMutationOptions(options),
+        state,
+        defaultOptions: options.mutationKey
+          ? client.getMutationDefaults(options.mutationKey)
+          : undefined,
       })
-    })
-  }
 
-  getAll(): Mutation[] {
-    return this.mutations
-  }
+      mutationCache.add(mutation)
 
-  notify(mutation?: Mutation<any, any, any, any>) {
-    notifyManager.batch(() => {
-      this.listeners.forEach(listener => {
-        listener(mutation)
+      return mutation
+    },
+
+    add: mutation => {
+      mutations.push(mutation)
+      mutationCache.notify(mutation)
+    },
+
+    remove: mutation => {
+      mutations = mutations.filter(x => x !== mutation)
+      mutation.cancel()
+      mutationCache.notify(mutation)
+    },
+
+    clear: () => {
+      notifyManager.batch(() => {
+        mutations.forEach(mutation => {
+          mutationCache.remove(mutation)
+        })
       })
-    })
-  }
+    },
 
-  onFocus(): void {
-    this.resumePausedMutations()
-  }
+    getAll: () => {
+      return mutations
+    },
 
-  onOnline(): void {
-    this.resumePausedMutations()
-  }
+    notify: mutation => {
+      notifyManager.batch(() => {
+        subscribable.listeners.forEach(listener => {
+          listener(mutation)
+        })
+      })
+    },
 
-  resumePausedMutations(): Promise<void> {
-    const pausedMutations = this.mutations.filter(x => x.state.isPaused)
-    return notifyManager.batch(() =>
-      pausedMutations.reduce(
-        (promise, mutation) =>
-          promise.then(() => mutation.continue().catch(noop)),
-        Promise.resolve()
+    onFocus: () => {
+      mutationCache.resumePausedMutations()
+    },
+
+    onOnline: () => {
+      mutationCache.resumePausedMutations()
+    },
+
+    resumePausedMutations: () => {
+      const pausedMutations = mutations.filter(x => x.state.isPaused)
+      return notifyManager.batch(() =>
+        pausedMutations.reduce(
+          (promise, mutation) =>
+            promise.then(() => mutation.continue().catch(noop)),
+          Promise.resolve()
+        )
       )
-    )
+    },
   }
+
+  return mutationCache
 }

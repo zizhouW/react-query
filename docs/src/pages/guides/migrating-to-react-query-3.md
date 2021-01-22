@@ -36,12 +36,12 @@ This has some benefits:
 - The client API is more focused towards general usage.
 - Easier to test the individual components.
 
-When creating a `new QueryClient()`, a `QueryCache` and `MutationCache` are automatically created for you if you don't supply them.
+When creating a `makeQueryClient()`, a `QueryCache` and `MutationCache` are automatically created for you if you don't supply them.
 
 ```js
 import { QueryClient } from 'react-query'
 
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 ```
 
 ### `ReactQueryConfigProvider` and `ReactQueryCacheProvider` have both been replaced by `QueryClientProvider`
@@ -49,7 +49,7 @@ const queryClient = new QueryClient()
 Default options for queries and mutations can now be specified in `QueryClient`:
 
 ```js
-const queryClient = new QueryClient({
+const queryClient = makeQueryClient({
   defaultOptions: {
     queries: {
       // query options
@@ -66,7 +66,7 @@ The `QueryClientProvider` component is now used to connect a `QueryClient` to yo
 ```js
 import { QueryClient, QueryClientProvider } from 'react-query'
 
-const queryClient = new QueryClient()
+const queryClient = makeQueryClient()
 
 function App() {
   return <QueryClientProvider client={queryClient}>...</QueryClientProvider>
@@ -75,7 +75,7 @@ function App() {
 
 ### The default `QueryCache` is gone. **For real this time!**
 
-As previously noted with a deprecation, there is no longer a default `QueryCache` that is created or exported from the main package. **You must create your own via `new QueryClient()` or `new QueryCache()` (which you can then pass to `new QueryClient({ queryCache })` )**
+As previously noted with a deprecation, there is no longer a default `QueryCache` that is created or exported from the main package. **You must create your own via `makeQueryClient()` or `makeQueryCache()` (which you can then pass to `makeQueryClient({ queryCache })` )**
 
 ### The deprecated `makeQueryCache` utility has been removed.
 
@@ -476,7 +476,7 @@ Mutations can now be persisted to storage and resumed at a later point. More inf
 A `QueryObserver` can be used to create and/or watch a query:
 
 ```js
-const observer = new QueryObserver(queryClient, { queryKey: 'posts' })
+const observer = makeQueryObserver(queryClient, { queryKey: 'posts' })
 
 const unsubscribe = observer.subscribe(result => {
   console.log(result)
@@ -489,7 +489,7 @@ const unsubscribe = observer.subscribe(result => {
 A `InfiniteQueryObserver` can be used to create and/or watch an infinite query:
 
 ```js
-const observer = new InfiniteQueryObserver(queryClient, {
+const observer = makeInfiniteQueryObserver(queryClient, {
   queryKey: 'posts',
   queryFn: fetchPosts,
   getNextPageParam: (lastPage, allPages) => lastPage.nextCursor,
@@ -507,7 +507,7 @@ const unsubscribe = observer.subscribe(result => {
 A `QueriesObserver` can be used to create and/or watch multiple queries:
 
 ```js
-const observer = new QueriesObserver(queryClient, [
+const observer = makeQueriesObserver(queryClient, [
   { queryKey: ['post', 1], queryFn: fetchPost },
   { queryKey: ['post', 2], queryFn: fetchPost },
 ])
