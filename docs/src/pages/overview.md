@@ -47,7 +47,7 @@ In the example below, you can see React Query in its most basic and simple form 
 [Open in CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/next/examples/simple)
 
 ```js
-import { QueryClient, QueryClientProvider, useQuery } from 'react-query'
+import { createQueryClient, QueryClientProvider, useQuery } from 'react-query'
 
 const queryClient = createQueryClient()
 
@@ -59,12 +59,16 @@ export default function App() {
   )
 }
 
-function Example() {
-  const { isLoading, error, data } = useQuery('repoData', () =>
+const repoQuery = createQuery({
+  key: 'repoData',
+  fetch: () =>
     fetch('https://api.github.com/repos/tannerlinsley/react-query').then(res =>
       res.json()
-    )
-  )
+    ),
+})
+
+function Example() {
+  const { isLoading, error, data } = useQuery(repoQuery)
 
   if (isLoading) return 'Loading...'
 

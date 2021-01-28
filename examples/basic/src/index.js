@@ -5,12 +5,37 @@ import axios from "axios";
 import {
   useQuery,
   useQueryClient,
-  QueryClient,
+  createQueryClient,
   QueryClientProvider,
 } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 
 const queryClient = createQueryClient();
+
+const postsQuery = createListQuery({
+  types: ["post"],
+  fetch: async () => {
+    const { data } = await axios.get(
+      "https://jsonplaceholder.typicode.com/posts"
+    );
+    return data;
+  },
+  getEntities: (posts) =>
+    posts.map((post) => ({
+      id: post.id,
+      type: "post",
+    })),
+});
+
+const postQuery = createQuery({
+  type: "post",
+  fetch: async (postId) => {
+    const { data } = await axios.get(
+      `https://jsonplaceholder.typicode.com/posts/${postId}`
+    );
+    return data;
+  },
+});
 
 function App() {
   const [postId, setPostId] = React.useState(-1);
@@ -37,18 +62,9 @@ function App() {
   );
 }
 
-function usePosts() {
-  return useQuery("posts", async () => {
-    const { data } = await axios.get(
-      "https://jsonplaceholder.typicode.com/posts"
-    );
-    return data;
-  });
-}
-
 function Posts({ setPostId }) {
   const queryClient = useQueryClient();
-  const { status, data, error, isFetching } = usePosts();
+  const { status, data, error, isFetching } = useQuery({ query: postsQuery });
 
   return (
     <div>
@@ -90,21 +106,12 @@ function Posts({ setPostId }) {
   );
 }
 
-const getPostById = async (id) => {
-  const { data } = await axios.get(
-    `https://jsonplaceholder.typicode.com/posts/${id}`
-  );
-  return data;
-};
-
-function usePost(postId) {
-  return useQuery(["post", postId], () => getPostById(postId), {
+function Post({ postId, setPostId }) {
+  const { status, data, error, isFetching } = useQuery({
+    query: postQuery,
+    variables: postId,
     enabled: !!postId,
   });
-}
-
-function Post({ postId, setPostId }) {
-  const { status, data, error, isFetching } = usePost(postId);
 
   return (
     <div>

@@ -1,10 +1,23 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import ReactDOM from "react-dom";
-import { QueryClient, QueryClientProvider, useQuery } from "react-query";
+import {
+  createQuery,
+  createQueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 
 const queryClient = createQueryClient();
+
+const postQuery = createQuery({
+  id: "repo",
+  fetch: () =>
+    fetch(
+      "https://api.github.com/repos/tannerlinsley/react-query"
+    ).then((res) => res.json()),
+});
 
 export default function App() {
   return (
@@ -15,11 +28,7 @@ export default function App() {
 }
 
 function Example() {
-  const { isLoading, error, data, isFetching } = useQuery("repoData", () =>
-    fetch(
-      "https://api.github.com/repos/tannerlinsley/react-query"
-    ).then((res) => res.json())
-  );
+  const { isLoading, error, data, isFetching } = useQuery(postQuery);
 
   if (isLoading) return "Loading...";
 

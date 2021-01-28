@@ -8,6 +8,15 @@ import {
   replaceEqualDeep,
   timeUntilStale,
 } from './utils'
+import type {
+  DefaultQueryGenerics,
+  MergeQueryGenerics,
+  InitialDataFunction,
+  QueryOptions,
+  QueryStatus,
+  QueryFunctionContext,
+  QueryFunction,
+} from './types'
 import type { QueryCache } from './queryCache'
 import type { QueryObserver } from './queryObserver'
 import { notifyManager } from './notifyManager'
@@ -21,19 +30,25 @@ import {
 
 // TYPES
 
-interface QueryConfig<TGenerics> {
+interface CreateQueryOptions<
+  TUserGenerics extends DefaultQueryGenerics = DefaultQueryGenerics,
+  TGenerics extends MergeQueryGenerics<TUserGenerics> = MergeQueryGenerics<
+    TUserGenerics
+  >
+> {
+  kind: string
+  fetch: QueryFunction<TGenerics>
   cache: QueryCache
   queryHash: string
   options?: QueryOptions<TGenerics>
-  defaultOptions?: QueryOptions<TGenerics>
   state?: QueryState<TGenerics>
 }
 
 export interface QueryState<TGenerics extends DefaultQueryGenerics> {
-  data?: TGenerics['Data']
+  data?: TGenerics['Error']
   dataUpdateCount: number
   dataUpdatedAt: number
-  error: TGenerics['Data'] | null
+  error: TGenerics['Error'] | null
   errorUpdateCount: number
   errorUpdatedAt: number
   fetchFailureCount: number
@@ -44,8 +59,8 @@ export interface QueryState<TGenerics extends DefaultQueryGenerics> {
   status: QueryStatus
 }
 
-export interface FetchContext<TGenerics> {
-  fetchFn: () => unknown | Promise<unknown>
+export interface FetchContext<TGenerics extends DefaultQueryGenerics> {
+  fetchFn: () => Promisable<TGenerics['Data']>
   fetchOptions?: FetchOptions
   options: QueryOptions<TGenerics>
   state: QueryState<TGenerics>
@@ -96,7 +111,7 @@ interface ContinueAction {
   type: 'continue'
 }
 
-interface SetStateAction<TGenerics> {
+interface SetStateAction<TGenerics extends DefaultQueryGenerics> {
   type: 'setState'
   state: QueryState<TGenerics>
 }
@@ -141,10 +156,13 @@ export type Query<TGenerics extends DefaultQueryGenerics> = {
   ): Promisable<TGenerics['Data']>
 }
 
-export function createQuery<TGenerics extends DefaultQueryGenerics>(
-  config: QueryConfig<TGenerics>
-) {
-  const cache: QueryCache = config.cache
+export function createQuery<
+  TUserGenerics extends DefaultQueryGenerics = DefaultQueryGenerics,
+  TGenerics extends MergeQueryGenerics<TUserGenerics> = MergeQueryGenerics<
+    TUserGenerics
+  >
+>(userOptions: CreateQueryOptions<TGenerics>) {
+  // const cache: QueryCache = config.cache
   let promise: Promise<TGenerics['Data']>
   let gcTimeout: number | undefined
   let retryer: Retryer<unknown>
@@ -152,11 +170,10 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
   let defaultOptions: QueryOptions<TGenerics> | undefined =
     config.defaultOptions
 
-  const options = { ...defaultOptions, ...config.options }
+  const options = { ...defaultOptions, ...userOptions }
   const initialState = config.state || getDefaultState(options)
 
   const query: Query<TGenerics> = {
-    queryHash: config.queryHash,
     options,
     initialState,
     state: initialState,
@@ -172,7 +189,7 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
       // Use prev data if an isDataEqual function is defined and returns `true`
       if (query.options.isDataEqual?.(prevData, data)) {
-        data = prevData
+        data = prevData as TData
       } else if (query.options.structuralSharing !== false) {
         // Structurally share data between prev and new data if needed
         data = replaceEqualDeep(prevData, data)
@@ -355,36 +372,7 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
       // Try to fetch the data
       retryer = createRetryer({
-        fn: context.fetchFn as () => TData,
-        onSuccess: data => {
-          query.setData(data as TData)
-          // Remove query after fetching if cache time is 0
-          if (query.cacheTime === 0) {
-            optionalRemove()
-          }
-        },
-        onError: error => {
-          // Optimistically update state if needed
-          if (!(isCancelledError(error) && error.silent)) {
-            dispatch({
-              type: 'error',
-              error: error as TError,
-            })
-          }
-
-          if (!isCancelledError(error)) {
-            // Notify cache callback
-            if (cache.config?.onError) {
-              cache.config.onError(error, query as Query)
-            }
-            // Log error
-            getLogger().error(error)
-          }
-          // Remove query after fetching if cache time is 0
-          if (query.cacheTime === 0) {
-            optionalRemove()
-          }
-        },
+        fn: context.fetchFn,
         onFail: () => {
           dispatch({ type: 'failed' })
         },
@@ -399,6 +387,42 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
       })
 
       promise = retryer.promise
+        .then(data => query.setData(data as TData))
+        .catch(error => {
+          // Set error state if needed
+          if (!(isCancelledError(error) && error.silent)) {
+            dispatch({
+              type: 'error',
+              error,
+            })
+          }
+
+          if (!isCancelledError(error)) {
+            // Notify cache callback
+            if (cache?.config?.onError) {
+              cache.config.onError(error, query as Query)
+            }
+
+            // Log error
+            getLogger().error(error)
+          }
+
+          // Remove query after fetching if cache time is 0
+          if (query.cacheTime === 0) {
+            optionalRemove()
+          }
+
+          // Propagate error
+          throw error
+        })
+        .then(data => {
+          // Remove query after fetching if cache time is 0
+          if (query.cacheTime === 0) {
+            optionalRemove()
+          }
+
+          return data
+        })
 
       return promise
     },
@@ -440,7 +464,7 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
     }
   }
 
-  function dispatch(action: Action<TGenerics>): void {
+  function dispatch(action: Action<TData, TError>): void {
     query.state = reducer(query.state, action)
 
     notifyManager.batch(() => {
@@ -454,7 +478,7 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
   function getDefaultState(
     defaultStateOptions: QueryOptions<TGenerics>
-  ): QueryState<TGenerics> {
+  ): QueryState<TData, TError> {
     const data =
       typeof defaultStateOptions.initialData === 'function'
         ? (defaultStateOptions.initialData as InitialDataFunction<TData>)()
@@ -491,9 +515,9 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
   // protected
   function reducer(
-    state: QueryState<TGenerics>,
-    action: Action<TGenerics>
-  ): QueryState<TGenerics> {
+    state: QueryState<TData, TError>,
+    action: Action<TData, TError>
+  ): QueryState<TData, TError> {
     switch (action.type) {
       case 'failed':
         return {

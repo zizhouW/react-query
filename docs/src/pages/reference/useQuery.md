@@ -67,7 +67,7 @@ const result = useQuery({
   - The query key to use for this query.
   - The query key will be hashed into a stable hash. See [Query Keys](../guides/query-keys) for more information.
   - The query will automatically update when this key changes (as long as `enabled` is not set to `false`).
-- `queryFn: (context: QueryFunctionContext) => Promise<TData>`
+- `queryFn: (context: QueryFunctionContext) => Promisable<TGenerics['Data']>`
   - **Required, but only if no default query function has been defined**
   - The function that the query will use to request data.
   - Receives a `QueryFunctionContext` object with the following variables:

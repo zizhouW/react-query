@@ -42,7 +42,7 @@ export type MutationObserver<
   mutate(
     variables?: TVariables,
     options?: MutateOptions<TData, TError, TVariables, TContext>
-  ): Promise<TData>
+  ): Promisable<TGenerics['Data']>
   subscribe: Subscribable<
     MutationObserverListener<TData, TError, TVariables, TContext>
   >['subscribe']

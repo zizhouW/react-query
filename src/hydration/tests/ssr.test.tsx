@@ -19,7 +19,10 @@ function setIsServer(isServer: boolean) {
   utils.isServer = isServer
 }
 
-async function fetchData<TData>(value: TData, ms?: number): Promise<TData> {
+async function fetchData<TData>(
+  value: TData,
+  ms?: number
+): Promisable<TGenerics['Data']> {
   await sleep(ms || 1)
   return value
 }

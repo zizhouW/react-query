@@ -58,7 +58,7 @@ export function useBaseQuery<
   }
 
   // Create query observer
-  const observerRef = React.useRef<QueryObserver<any, any, any, any>>()
+  const observerRef = React.useRef<QueryObserver<TGenerics>>()
   const observer =
     observerRef.current || createObserver(queryClient, defaultedOptions)
   observerRef.current = observer

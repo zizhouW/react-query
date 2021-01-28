@@ -1,12 +1,16 @@
 import type { QueryBehavior } from './query'
 import { isCancelable } from './retryer'
-import type { InfiniteData, QueryFunctionContext, QueryOptions } from './types'
+import type {
+  InfiniteQueryResult,
+  QueryFunctionContext,
+  QueryOptions,
+} from './types'
 
 export function infiniteQueryBehavior<
   TQueryFnData,
   TError,
   TData
->(): QueryBehavior<TQueryFnData, TError, InfiniteData<TData>> {
+>(): QueryBehavior<TQueryFnData, TError, InfiniteQueryResult<TData>> {
   return {
     onFetch: context => {
       context.fetchFn = () => {

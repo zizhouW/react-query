@@ -34,7 +34,7 @@ mutate(variables, {
 
 **Options**
 
-- `mutationFn: (variables: TVariables) => Promise<TData>`
+- `mutationFn: (variables: TVariables) => Promisable<TGenerics['Data']>`
   - **Required**
   - A function that performs an asynchronous task and returns a promise.
   - `variables` is an object that `mutate` will pass to your `mutationFn`
@@ -79,7 +79,7 @@ mutate(variables, {
     - The variables object to pass to the `mutationFn`.
   - Remaining options extend the same options described above in the `useMutation` hook.
   - If you make multiple requests, `onSuccess` will fire only after the latest call you've made.
-- `mutateAsync: (variables: TVariables, { onSuccess, onSettled, onError }) => Promise<TData>`
+- `mutateAsync: (variables: TVariables, { onSuccess, onSettled, onError }) => Promisable<TGenerics['Data']>`
   - Similar to `mutate` but returns a promise which can be awaited.
 - `status: string`
   - Will be:

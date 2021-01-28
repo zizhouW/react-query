@@ -88,8 +88,8 @@ export type Mutation<
   addObserver(observer: MutationObserver<any, any, any, any>): void
   removeObserver(observer: MutationObserver<any, any, any, any>): void
   cancel(): Promise<void>
-  continue(): Promise<TData>
-  execute(): Promise<TData>
+  continue(): Promisable<TGenerics['Data']>
+  execute(): Promisable<TGenerics['Data']>
 }
 
 export function createMutation<
@@ -219,7 +219,7 @@ export function createMutation<
 
   return mutation
 
-  function executeMutation(): Promise<TData> {
+  function executeMutation(): Promisable<TGenerics['Data']> {
     retryer = createRetryer({
       fn: () => {
         if (!mutation.options.mutationFn) {

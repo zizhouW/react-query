@@ -1,3 +1,4 @@
+export { createQuery } from './createQuery'
 export { createQueryCache } from './queryCache'
 export { createQueryClient } from './queryClient'
 export { createQueryObserver } from './queryObserver'

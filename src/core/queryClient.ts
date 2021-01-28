@@ -6,10 +6,10 @@ import {
   partialMatchKey,
 } from './utils'
 import type {
-  DefaultOptions,
+  DefaultQueryClientOptions,
   FetchInfiniteQueryOptions,
   FetchQueryOptions,
-  InfiniteData,
+  InfiniteQueryResult,
   InvalidateOptions,
   InvalidateQueryFilters,
   MutationKey,
@@ -35,7 +35,7 @@ import { createQueryCache, QueryCache } from './queryCache'
 interface QueryClientConfig {
   queryCache?: QueryCache
   mutationCache?: MutationCache
-  defaultOptions?: DefaultOptions
+  defaultOptions?: DefaultQueryClientOptions
 }
 
 interface QueryDefaults {
@@ -82,7 +82,7 @@ export type QueryClient = {
     TData = TQueryFnData
   >(
     options: FetchInfiniteQueryOptions<TQueryFnData, TError, TData>
-  ): Promise<InfiniteData<TData> | undefined>
+  ): Promise<InfiniteQueryResult<TData> | undefined>
   prefetchInfiniteQuery(options: FetchInfiniteQueryOptions): Promise<void>
   cancelMutations(): Promise<void>
   resumePausedMutations(): Promise<void>
@@ -93,11 +93,11 @@ export type QueryClient = {
     TContext = unknown
   >(
     options: MutationOptions<TData, TError, TVariables, TContext>
-  ): Promise<TData>
+  ): Promisable<TGenerics['Data']>
   getQueryCache(): QueryCache
   getMutationCache(): MutationCache
-  getDefaultOptions(): DefaultOptions
-  setDefaultOptions(options: DefaultOptions): void
+  getDefaultOptions(): DefaultQueryClientOptions
+  setDefaultOptions(options: DefaultQueryClientOptions): void
   setQueryDefaults(
     queryKey: QueryKey,
     options: QueryObserverOptions<any, any, any, any>
@@ -264,7 +264,7 @@ export function createQueryClient(config: QueryClientConfig = {}) {
       TData = TQueryFnData
     >(
       options: FetchInfiniteQueryOptions<TQueryFnData, TError, TData>
-    ): Promise<InfiniteData<TData> | undefined> => {
+    ): Promise<InfiniteQueryResult<TData> | undefined> => {
       options.behavior = infiniteQueryBehavior<TQueryFnData, TError, TData>()
       return queryClient.fetchQuery(options)
     },

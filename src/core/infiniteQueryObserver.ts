@@ -1,7 +1,7 @@
 import type {
   FetchNextPageOptions,
   FetchPreviousPageOptions,
-  InfiniteData,
+  InfiniteQueryResult,
   InfiniteQueryObserverOptions,
   InfiniteQueryObserverResult,
 } from './types'
@@ -25,7 +25,7 @@ export type InfiniteQueryObserver<
   TQueryData = TQueryFnData
 > = {
   subscribe: Subscribable<
-    QueryObserverListener<InfiniteData<TData>, TError>
+    QueryObserverListener<InfiniteQueryResult<TData>, TError>
   >['subscribe']
   getCurrentResult(): InfiniteQueryObserverResult<TData, TError>
   setOptions(
@@ -60,8 +60,8 @@ export function createInfiniteQueryObserver<
   const queryObserver = createQueryObserver<
     TQueryFnData,
     TError,
-    InfiniteData<TData>,
-    InfiniteData<TQueryData>
+    InfiniteQueryResult<TData>,
+    InfiniteQueryResult<TQueryData>
   >(client, options)
 
   const infiniteQueryObserver: InfiniteQueryObserver<

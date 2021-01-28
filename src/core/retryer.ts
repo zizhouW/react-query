@@ -4,10 +4,10 @@ import { functionalUpdate, sleep } from './utils'
 
 // TYPES
 
-interface RetryerConfig<TData = unknown, TError = unknown> {
-  fn: () => TData | Promise<TData>
+interface RetryerConfig<TGenerics extends DefaultQueryGenerics> {
   onError?: (error: TError) => void
   onSuccess?: (data: TData) => void
+  fn: () => TData | Promisable<TGenerics['Data']>
   onFail?: (failureCount: number, error: TError) => void
   onPause?: () => void
   onContinue?: () => void
@@ -63,11 +63,11 @@ export type Retryer<TData> = {
   isPaused: boolean
   isResolved: boolean
   isTransportCancelable: boolean
-  promise: Promise<TData>
+  promise: Promisable<TGenerics['Data']>
   proceed(): void
 }
 
-export function createRetryer<TData = unknown, TError = unknown>(
+export function createRetryer<TGenerics extends DefaultQueryGenerics>(
   config: RetryerConfig<TData, TError>
 ) {
   let isRetryCancelled = false
@@ -85,7 +85,7 @@ export function createRetryer<TData = unknown, TError = unknown>(
     isPaused: false,
     isResolved: false,
     isTransportCancelable: false,
-    promise: new Promise<TData>((outerResolve, outerReject) => {
+    promise: new Promisable<TGenerics['Data']>((outerResolve, outerReject) => {
       promiseResolve = outerResolve
       promiseReject = outerReject
     }),

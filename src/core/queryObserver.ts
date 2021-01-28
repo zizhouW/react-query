@@ -9,6 +9,7 @@ import {
 } from './utils'
 import { notifyManager } from './notifyManager'
 import type {
+  DefaultQueryGenerics,
   PlaceholderDataFunction,
   QueryObserverBaseResult,
   QueryObserverOptions,
@@ -22,8 +23,8 @@ import type { QueryClient } from './queryClient'
 import { focusManager } from './focusManager'
 import { Subscribable } from './subscribable'
 
-export type QueryObserverListener<TData, TError> = (
-  result: QueryObserverResult<TData, TError>
+export type QueryObserverListener<TGenerics> = (
+  result: QueryObserverResult<TGenerics>
 ) => void
 
 interface NotifyOptions {
@@ -37,41 +38,32 @@ export interface ObserverFetchOptions extends FetchOptions {
   throwOnError?: boolean
 }
 
-export type QueryObserver<
-  TQueryFnData = unknown,
-  TError = unknown,
-  TData = TQueryFnData,
-  TQueryData = TQueryFnData
-> = {
-  options: QueryObserverOptions<TQueryFnData, TError, TData, TQueryData>
-  subscribe: Subscribable<QueryObserverListener<TData, TError>>['subscribe']
-  hasListeners: Subscribable<
-    QueryObserverListener<TData, TError>
-  >['hasListeners']
+export type QueryObserver<TGenerics extends DefaultQueryGenerics> = {
+  options: QueryObserverOptions<TGenerics>
+  subscribe: Subscribable<QueryObserverListener<TGenerics>>['subscribe']
+  hasListeners: Subscribable<QueryObserverListener<TGenerics>>['hasListeners']
   willLoadOnMount(): boolean
   willRefetchOnMount(): boolean
   willFetchOnMount(): boolean
   willFetchOnReconnect(): boolean
   willFetchOnWindowFocus(): boolean
   destroy(): void
-  setOptions(
-    newOptions?: QueryObserverOptions<TQueryFnData, TError, TData, TQueryData>
-  ): void
-  getCurrentResult(): QueryObserverResult<TData, TError>
-  getTrackedCurrentResult(): QueryObserverResult<TData, TError>
+  getTrackedCurrentResult(): QueryObserverResult<TGenerics>
+  setOptions(newOptions?: QueryObserverOptions<TGenerics>): void
+  getCurrentResult(): QueryObserverResult<TGenerics>
   getNextResult(
     resultOptions?: ResultOptions
-  ): Promise<QueryObserverResult<TData, TError>>
-  getCurrentQuery(): Query<TQueryFnData, TError, TQueryData>
-  getNewResult(willFetch?: boolean): QueryObserverResult<TData, TError>
+  ): Promise<QueryObserverResult<TGenerics>>
+  getCurrentQuery(): Query<TGenerics>
+  getNewResult(willFetch?: boolean): QueryObserverResult<TGenerics>
   remove(): void
   fetch(
     fetchOptions?: ObserverFetchOptions
-  ): Promise<QueryObserverResult<TData, TError>>
+  ): Promise<QueryObserverResult<TGenerics>>
   refetch(
     refetchOptions?: RefetchOptions
-  ): Promise<QueryObserverResult<TData, TError>>
-  onQueryUpdate(action: Action<TData, TError>): void
+  ): Promise<QueryObserverResult<TGenerics>>
+  onQueryUpdate(action: Action<TGenerics>): void
 }
 
 export function createQueryObserver<
@@ -83,10 +75,10 @@ export function createQueryObserver<
   client: QueryClient,
   observerOptions: QueryObserverOptions<TQueryFnData, TError, TData, TQueryData>
 ) {
-  let currentQuery: Query<TQueryFnData, TError, TQueryData>
-  let currentResult: QueryObserverResult<TData, TError>
-  let currentResultState: QueryState<TQueryData, TError>
-  let previousQueryResult: QueryObserverResult<TData, TError>
+  let currentQuery: Query<TGenerics>
+  let currentResult: QueryObserverResult<TGenerics>
+  let currentResultState: QueryState<TGenerics>
+  let previousQueryResult: QueryObserverResult<TGenerics>
   let initialDataUpdateCount: number
   let initialErrorUpdateCount: number
   let staleTimeoutId: number | undefined
@@ -100,7 +92,7 @@ export function createQueryObserver<
   const trackedProps: Array<keyof QueryObserverResult> = []
   let trackedCurrentResult: QueryObserverResult<TData, TError>
 
-  const subscribable = Subscribable<QueryObserverListener<TData, TError>>({
+  const subscribable = Subscribable<QueryObserverListener<TGenerics>>({
     onSubscribe(): void {
       if (subscribable.listeners.length === 1) {
         updateQuery()
@@ -338,7 +330,7 @@ export function createQueryObserver<
         }
       }
 
-      const result: QueryObserverBaseResult<TData, TError> = {
+      const result: QueryObserverBaseResult<TGenerics> = {
         ...getStatusProps(status),
         data,
         dataUpdatedAt,
@@ -359,7 +351,7 @@ export function createQueryObserver<
         remove: observer.remove,
       }
 
-      return result as QueryObserverResult<TData, TError>
+      return result as QueryObserverResult<TGenerics>
     },
     remove: () => {
       client.getQueryCache().remove(currentQuery)
@@ -407,7 +399,7 @@ export function createQueryObserver<
 
     // Fetch
     let promise: Promise<TQueryData | undefined> = currentQuery.fetch(
-      observer.options as QueryOptions<TQueryFnData, TError, TQueryData>,
+      observer.options as QueryOptions<TGenerics>,
       fetchOptions
     )
 
@@ -594,10 +586,7 @@ export function createQueryObserver<
 
     const query = client
       .getQueryCache()
-      .build(
-        client,
-        observer.options as QueryOptions<TQueryFnData, TError, TQueryData>
-      )
+      .build(client, observer.options as QueryOptions<TGenerics>)
 
     if (query === prevQuery) {
       return false

@@ -66,7 +66,7 @@ export type UseMutateAsyncFunction<
 > = (
   variables: TVariables,
   options?: MutateOptions<TData, TError, TVariables, TContext>
-) => Promise<TData>
+) => Promisable<TGenerics['Data']>
 
 export interface UseMutationResult<
   TData = unknown,

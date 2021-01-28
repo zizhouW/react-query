@@ -92,7 +92,7 @@ The options for `fetchQuery` are exactly the same as those of [`useQuery`](./use
 
 **Returns**
 
-- `Promise<TData>`
+- `Promisable<TGenerics['Data']>`
 
 ## `queryClient.fetchInfiniteQuery`
 

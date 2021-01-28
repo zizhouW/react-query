@@ -14,13 +14,28 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-  QueryClient,
+  createQuery,
+  createQueryClient,
   QueryClientProvider,
 } from 'react-query'
 import { getTodos, postTodo } from '../my-api'
 
 // Create a client
 const queryClient = createQueryClient()
+
+const todosQuery = createQuery({
+  key: 'todos',
+  fetch: getTodos,
+})
+
+const postTodoMutation = createMutation({
+  key: 'postTodo',
+  mutate: postTodo,
+  onSuccess: () => {
+    // Invalidate and refetch todos
+    queryClient.invalidateQueries('todos')
+  },
+})
 
 function App() {
   return (
@@ -32,19 +47,8 @@ function App() {
 }
 
 function Todos() {
-  // Access the client
-  const queryClient = useQueryClient()
-
-  // Queries
-  const query = useQuery('todos', getTodos)
-
-  // Mutations
-  const mutation = useMutation(postTodo, {
-    onSuccess: () => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries('todos')
-    },
-  })
+  const query = useQuery(todosQuery)
+  const mutation = useMutation(postTodoMutation)
 
   return (
     <div>
