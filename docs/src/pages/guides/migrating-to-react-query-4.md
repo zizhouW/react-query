@@ -91,7 +91,7 @@ title: Migrating to React Query 4
 
   ```js
   {
-    mutationFn?: QueryKey
+    mutationFn?: MutationFunction
     // All other existing MutationOptions properties
     ...options
   }
