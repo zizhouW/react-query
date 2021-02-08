@@ -55,13 +55,13 @@ To support caching queries on the server and set up hydration:
 
 ```js
 // _app.jsx
-import { QueryClient, QueryClientProvider } from 'react-query'
+import { createQueryClient, QueryClientProvider } from 'react-query'
 import { Hydrate } from 'react-query/hydration'
 
 export default function MyApp({ Component, pageProps }) {
   const queryClientRef = React.useRef()
   if (!queryClientRef.current) {
-    queryClientRef.current = new QueryClient()
+    queryClientRef.current = createQueryClient()
   }
 
   return (
@@ -129,11 +129,11 @@ This guide is at-best, a high level overview of how SSR with React Query should 
 > SECURITY NOTE: Serializing data with `JSON.stringify` can put you at risk for XSS-vulnerabilities, [this blog post explains why and how to solve it](https://medium.com/node-security/the-most-common-xss-vulnerability-in-react-js-applications-2bdffbcc1fa0)
 
 ```js
-import { QueryClient, QueryClientProvider } from 'react-query'
+import { createQueryClient, QueryClientProvider } from 'react-query'
 import { dehydrate, Hydrate } from 'react-query/hydration'
 
 function handleRequest (req, res) {
-  const queryClient = new QueryClient()
+  const queryClient = createQueryClient()
   await queryClient.prefetchQuery('key', fn)
   const dehydratedState = dehydrate(queryClient)
 

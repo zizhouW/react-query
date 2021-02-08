@@ -1,12 +1,12 @@
 import React from 'react'
-import { QueryClient, QueryClientProvider } from 'react-query'
+import { createQueryClient, QueryClientProvider } from 'react-query'
 import { Hydrate } from 'react-query/hydration'
 import { ReactQueryDevtools } from 'react-query/devtools'
 
 export default function MyApp({ Component, pageProps }) {
   const queryClientRef = React.useRef()
   if (!queryClientRef.current) {
-    queryClientRef.current = new QueryClient()
+    queryClientRef.current = createQueryClient()
   }
 
   return (
