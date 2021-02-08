@@ -22,7 +22,6 @@ title: Migrating to React Query 4
 
 - `new QueryClient()` -> `createQueryClient()`
 - `new QueryCache()` => `createQueryCache()`
-- `new QueryClient()` => `createQueryClient()`
 - `new QueryObserver()` => `createQueryObserver()`
 - `new QueriesObserver()` => `createQueriesObserver()`
 - `new InfiniteQueryObserver()` => `createInfiniteQueryObserver()`
