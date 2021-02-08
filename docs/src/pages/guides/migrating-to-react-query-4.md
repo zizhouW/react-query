@@ -40,7 +40,7 @@ title: Migrating to React Query 4
 
   ```js
   fn(queryKey, queryOptions)
-  fn(queryKey, queryFn, queryConfig)
+  fn(queryKey, queryFn, queryOptions)
   ```
 
   And now require a single query configuration object with the following properties:
