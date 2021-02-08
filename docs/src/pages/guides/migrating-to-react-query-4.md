@@ -7,6 +7,7 @@ title: Migrating to React Query 4
 
 - Library size reductions by about ~1kb
 - Migrated from class-based architecture to a more functional style to:
+  - Reduce the complexity of the source code
   - Resonate more with the React and React Query ecosystem
   - Encourage more contributions
   - Reduce cognitive load for those unfamiliar with classes
