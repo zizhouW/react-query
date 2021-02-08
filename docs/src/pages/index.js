@@ -13,7 +13,7 @@ import { Footer } from '../components/Footer'
 import { ClientsMarquee } from '../components/clients/ClientsMarquee'
 import { Seo } from '../components/Seo'
 
-const Home = ({ sponsors }) => {
+const Home = () => {
   return (
     <>
       <Seo
