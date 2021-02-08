@@ -4,9 +4,9 @@ import ReactDOMServer from 'react-dom/server'
 
 import {
   useQuery,
-  makeQueryClient,
+  createQueryClient,
   QueryClientProvider,
-  makeQueryCache,
+  createQueryCache,
 } from '../..'
 import { dehydrate, hydrate } from '../'
 import * as utils from '../../core/utils'
@@ -47,15 +47,15 @@ describe('Server side rendering with de/rehydration', () => {
     // -- Server part --
     setIsServer(true)
 
-    const prefetchCache = makeQueryCache()
-    const prefetchClient = makeQueryClient({ queryCache: prefetchCache })
+    const prefetchCache = createQueryCache()
+    const prefetchClient = createQueryClient({ queryCache: prefetchCache })
     await prefetchClient.prefetchQuery({
       queryKey: 'success',
       queryFn: () => fetchDataSuccess('success'),
     })
     const dehydratedStateServer = dehydrate(prefetchClient)
-    const renderCache = makeQueryCache()
-    const renderClient = makeQueryClient({ queryCache: renderCache })
+    const renderCache = createQueryCache()
+    const renderClient = createQueryClient({ queryCache: renderCache })
     hydrate(renderClient, dehydratedStateServer)
     const markup = ReactDOMServer.renderToString(
       <QueryClientProvider client={renderClient}>
@@ -75,8 +75,8 @@ describe('Server side rendering with de/rehydration', () => {
     const el = document.createElement('div')
     el.innerHTML = markup
 
-    const queryCache = makeQueryCache()
-    const queryClient = makeQueryClient({ queryCache })
+    const queryCache = createQueryCache()
+    const queryClient = createQueryClient({ queryCache })
     hydrate(queryClient, JSON.parse(stringifiedState))
 
     ReactDOM.hydrate(
@@ -116,15 +116,15 @@ describe('Server side rendering with de/rehydration', () => {
 
     // -- Server part --
     setIsServer(true)
-    const prefetchCache = makeQueryCache()
-    const prefetchClient = makeQueryClient({ queryCache: prefetchCache })
+    const prefetchCache = createQueryCache()
+    const prefetchClient = createQueryClient({ queryCache: prefetchCache })
     await prefetchClient.prefetchQuery({
       queryKey: 'error',
       queryFn: () => fetchDataError(),
     })
     const dehydratedStateServer = dehydrate(prefetchClient)
-    const renderCache = makeQueryCache()
-    const renderClient = makeQueryClient({ queryCache: renderCache })
+    const renderCache = createQueryCache()
+    const renderClient = createQueryClient({ queryCache: renderCache })
     hydrate(renderClient, dehydratedStateServer)
     const markup = ReactDOMServer.renderToString(
       <QueryClientProvider client={renderClient}>
@@ -144,8 +144,8 @@ describe('Server side rendering with de/rehydration', () => {
     const el = document.createElement('div')
     el.innerHTML = markup
 
-    const queryCache = makeQueryCache()
-    const queryClient = makeQueryClient({ queryCache })
+    const queryCache = createQueryCache()
+    const queryClient = createQueryClient({ queryCache })
     hydrate(queryClient, JSON.parse(stringifiedState))
 
     ReactDOM.hydrate(
@@ -188,11 +188,11 @@ describe('Server side rendering with de/rehydration', () => {
     // -- Server part --
     setIsServer(true)
 
-    const prefetchCache = makeQueryCache()
-    const prefetchClient = makeQueryClient({ queryCache: prefetchCache })
+    const prefetchCache = createQueryCache()
+    const prefetchClient = createQueryClient({ queryCache: prefetchCache })
     const dehydratedStateServer = dehydrate(prefetchClient)
-    const renderCache = makeQueryCache()
-    const renderClient = makeQueryClient({ queryCache: renderCache })
+    const renderCache = createQueryCache()
+    const renderClient = createQueryClient({ queryCache: renderCache })
     hydrate(renderClient, dehydratedStateServer)
     const markup = ReactDOMServer.renderToString(
       <QueryClientProvider client={renderClient}>
@@ -212,8 +212,8 @@ describe('Server side rendering with de/rehydration', () => {
     const el = document.createElement('div')
     el.innerHTML = markup
 
-    const queryCache = makeQueryCache()
-    const queryClient = makeQueryClient({ queryCache })
+    const queryCache = createQueryCache()
+    const queryClient = createQueryClient({ queryCache })
     hydrate(queryClient, JSON.parse(stringifiedState))
 
     ReactDOM.hydrate(

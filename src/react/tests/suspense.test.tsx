@@ -5,16 +5,16 @@ import React from 'react'
 import { sleep, queryKey, mockConsoleError, renderWithClient } from './utils'
 import {
   useQuery,
-  makeQueryClient,
-  makeQueryCache,
+  createQueryClient,
+  createQueryCache,
   QueryErrorResetBoundary,
   useQueryErrorResetBoundary,
   UseQueryResult,
 } from '../..'
 
 describe("useQuery's in Suspense mode", () => {
-  const queryCache = makeQueryCache()
-  const queryClient = makeQueryClient({ queryCache })
+  const queryCache = createQueryCache()
+  const queryClient = createQueryClient({ queryCache })
 
   it('should render the correct amount of times in Suspense mode', async () => {
     const key = queryKey()

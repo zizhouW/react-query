@@ -18,7 +18,7 @@ import Button from "./components/Button";
 const Projects = lazy(() => import("./components/Projects"));
 const Project = lazy(() => import("./components/Project"));
 
-const queryClient = makeQueryClient({
+const queryClient = createQueryClient({
   defaultOptions: {
     queries: {
       retry: 0,

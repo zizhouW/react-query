@@ -10,7 +10,7 @@ The `QueryCache` is the storage mechanism for React Query. It stores all of the 
 ```js
 import { QueryCache } from 'react-query'
 
-const queryCache = makeQueryCache({
+const queryCache = createQueryCache({
   onError: error => {
     console.log(error)
   },

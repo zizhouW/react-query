@@ -2,7 +2,7 @@ import { difference, getQueryKeyHashFn, replaceAt } from './utils'
 import { notifyManager } from './notifyManager'
 import type { QueryObserverOptions, QueryObserverResult } from './types'
 import type { QueryClient } from './queryClient'
-import { makeQueryObserver, QueryObserver } from './queryObserver'
+import { createQueryObserver, QueryObserver } from './queryObserver'
 import { Subscribable } from './subscribable'
 
 type QueriesObserverListener = (result: QueryObserverResult[]) => void
@@ -15,7 +15,7 @@ export type QueriesObserver = {
   getCurrentResult(): QueryObserverResult[]
 }
 
-export function makeQueriesObserver(
+export function createQueriesObserver(
   client: QueryClient,
   initialQueries?: QueryObserverOptions[]
 ): QueriesObserver {
@@ -90,7 +90,7 @@ export function makeQueriesObserver(
         return observer
       }
 
-      return makeQueryObserver(client, defaultedOptions)
+      return createQueryObserver(client, defaultedOptions)
     })
 
     if (prevObservers.length === newObservers.length && !hasIndexChange) {

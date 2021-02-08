@@ -3,7 +3,7 @@ import type { MutationCache } from './mutationCache'
 import type { MutationObserver } from './mutationObserver'
 import { getLogger } from './logger'
 import { notifyManager } from './notifyManager'
-import { makeRetryer, Retryer } from './retryer'
+import { createRetryer, Retryer } from './retryer'
 import { noop } from './utils'
 
 // TYPES
@@ -92,7 +92,7 @@ export type Mutation<
   execute(): Promise<TData>
 }
 
-export function makeMutation<
+export function createMutation<
   TData = unknown,
   TError = unknown,
   TVariables = void,
@@ -220,7 +220,7 @@ export function makeMutation<
   return mutation
 
   function executeMutation(): Promise<TData> {
-    retryer = makeRetryer({
+    retryer = createRetryer({
       fn: () => {
         if (!mutation.options.mutationFn) {
           return Promise.reject('No mutationFn found')

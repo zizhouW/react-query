@@ -51,7 +51,7 @@ export type MutationObserver<
   >['hasListeners']
 }
 
-export function makeMutationObserver<
+export function createMutationObserver<
   TData = unknown,
   TError = unknown,
   TVariables = void,

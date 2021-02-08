@@ -15,7 +15,7 @@ const Home = () => {
 }
 
 export async function getStaticProps() {
-  const queryClient = makeQueryClient()
+  const queryClient = createQueryClient()
 
   await queryClient.prefetchQuery(['posts', 10], () => fetchPosts(10))
 

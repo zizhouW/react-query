@@ -5,7 +5,7 @@ import Characters from "./Characters";
 import Character from "./Character";
 import Home from "./Home";
 import { Link, Button } from "@material-ui/core";
-import { makeStyles } from "@material-ui/core/styles";
+import { createStyles } from "@material-ui/core/styles";
 import { Switch, Route, Link as RouterLink } from "react-router-dom";
 
 export default function Layout() {
@@ -47,10 +47,10 @@ export default function Layout() {
   );
 }
 
-const useStyles = makeStyles(theme => ({
+const useStyles = createStyles((theme) => ({
   main: {
     margin: "0 auto",
-    padding: "16px"
+    padding: "16px",
   },
   menu: {
     margin: "0 auto",
@@ -58,7 +58,7 @@ const useStyles = makeStyles(theme => ({
     justifyContent: "center",
     backgroundColor: "#CCC",
     "& button": {
-      margin: theme.spacing(1)
-    }
-  }
+      margin: theme.spacing(1),
+    },
+  },
 }));

@@ -10,7 +10,7 @@ import {
 } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 
-const queryClient = makeQueryClient();
+const queryClient = createQueryClient();
 
 function App() {
   const [postId, setPostId] = React.useState(-1);

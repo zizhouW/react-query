@@ -8,7 +8,7 @@ import type {
 import type { QueryClient } from './queryClient'
 import {
   ObserverFetchOptions,
-  makeQueryObserver,
+  createQueryObserver,
   QueryObserverListener,
 } from './queryObserver'
 import {
@@ -48,7 +48,7 @@ export type InfiniteQueryObserver<
   getNewResult(): InfiniteQueryObserverResult<TData, TError>
 }
 
-export function makeInfiniteQueryObserver<
+export function createInfiniteQueryObserver<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
@@ -57,7 +57,7 @@ export function makeInfiniteQueryObserver<
   client: QueryClient,
   options: InfiniteQueryObserverOptions<TQueryFnData, TError, TData, TQueryData>
 ) {
-  const queryObserver = makeQueryObserver<
+  const queryObserver = createQueryObserver<
     TQueryFnData,
     TError,
     InfiniteData<TData>,

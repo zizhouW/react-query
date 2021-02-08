@@ -5,14 +5,14 @@ import React from 'react'
 import { sleep, queryKey, mockConsoleError, renderWithClient } from './utils'
 import {
   useQuery,
-  makeQueryClient,
-  makeQueryCache,
+  createQueryClient,
+  createQueryCache,
   QueryErrorResetBoundary,
 } from '../..'
 
 describe('QueryErrorResetBoundary', () => {
-  const queryCache = makeQueryCache()
-  const queryClient = makeQueryClient({ queryCache })
+  const queryCache = createQueryCache()
+  const queryClient = createQueryClient({ queryCache })
 
   it('should retry fetch if the reset error boundary has been reset', async () => {
     const key = queryKey()

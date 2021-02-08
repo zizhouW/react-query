@@ -7,8 +7,8 @@ import {
 import {
   QueryCache,
   QueryClient,
-  makeQueryClient,
-  makeQueryObserver,
+  createQueryClient,
+  createQueryObserver,
   isCancelledError,
   isError,
   onlineManager,
@@ -19,7 +19,7 @@ describe('query', () => {
   let queryCache: QueryCache
 
   beforeEach(() => {
-    queryClient = makeQueryClient()
+    queryClient = createQueryClient()
     queryCache = queryClient.getQueryCache()
     queryClient.mount()
   })
@@ -200,7 +200,7 @@ describe('query', () => {
     await sleep(10)
 
     // Subscribe and unsubscribe to simulate cancellation because the last observer unsubscribed
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       enabled: false,
     })
@@ -240,7 +240,7 @@ describe('query', () => {
     await sleep(10)
 
     // Subscribe and unsubscribe to simulate cancellation because the last observer unsubscribed
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       enabled: false,
     })
@@ -410,7 +410,7 @@ describe('query', () => {
     const consoleMock = mockConsoleError()
     const key = queryKey()
     let count = 0
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => {
         count++
@@ -432,7 +432,7 @@ describe('query', () => {
 
   test('should be garbage collected when unsubscribed to', async () => {
     const key = queryKey()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: async () => 'data',
       cacheTime: 0,
@@ -446,7 +446,7 @@ describe('query', () => {
 
   test('should not be garbage collected unless there are no subscribers', async () => {
     const key = queryKey()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: async () => 'data',
       cacheTime: 0,

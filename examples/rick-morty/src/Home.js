@@ -1,6 +1,6 @@
 import React from "react";
 import { Typography } from "@material-ui/core";
-import { makeStyles } from "@material-ui/core/styles";
+import { createStyles } from "@material-ui/core/styles";
 import { Link } from "@material-ui/core";
 import { Link as RouterLink } from "react-router-dom";
 
@@ -12,8 +12,7 @@ export default function Home() {
       <Typography variant="h2">React Query Demo</Typography>
       <Typography variant="subtitle1">Using the Rick And Morty API</Typography>
       <Typography variant="subtitle2">
-        (Built by <a href="https://twitter.com/axelfuh">@axelfuh</a>
-        )
+        (Built by <a href="https://twitter.com/axelfuh">@axelfuh</a>)
       </Typography>
       <section className={classes.main}>
         <Typography variant="h5">Why React Query?</Typography>
@@ -47,11 +46,11 @@ export default function Home() {
   );
 }
 
-const useStyles = makeStyles(() => ({
+const useStyles = createStyles(() => ({
   main: {
     margin: "44px 0",
     "& p": {
-      margin: "12px 0 24px"
-    }
-  }
+      margin: "12px 0 24px",
+    },
+  },
 }));

@@ -49,7 +49,7 @@ In the example below, you can see React Query in its most basic and simple form 
 ```js
 import { QueryClient, QueryClientProvider, useQuery } from 'react-query'
 
-const queryClient = makeQueryClient()
+const queryClient = createQueryClient()
 
 export default function App() {
   return (

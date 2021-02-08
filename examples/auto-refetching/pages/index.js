@@ -12,7 +12,7 @@ import {
 } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
 
-const queryClient = makeQueryClient()
+const queryClient = createQueryClient()
 
 export default function App() {
   return (

@@ -4,7 +4,7 @@ if (typeof window !== 'undefined') {
   require('intersection-observer')
 }
 
-const manager = (function makeManager() {
+const manager = (function createManager() {
   const observers = new Map()
 
   function getObserver(options) {
@@ -55,7 +55,7 @@ const manager = (function makeManager() {
   return {
     getObserver,
     observeTarget,
-    unobserveTarget
+    unobserveTarget,
   }
 })()
 

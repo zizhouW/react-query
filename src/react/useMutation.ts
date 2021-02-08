@@ -3,7 +3,7 @@ import React from 'react'
 import { notifyManager } from '../core/notifyManager'
 import { noop } from '../core/utils'
 import {
-  makeMutationObserver,
+  createMutationObserver,
   MutationObserver,
 } from '../core/mutationObserver'
 import { useQueryClient } from './QueryClientProvider'
@@ -29,7 +29,7 @@ export function useMutation<
     MutationObserver<TData, TError, TVariables, TContext>
   >()
   const observer =
-    observerRef.current || makeMutationObserver(queryClient, options)
+    observerRef.current || createMutationObserver(queryClient, options)
   observerRef.current = observer
 
   // Update options

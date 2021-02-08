@@ -1,11 +1,15 @@
 import { sleep, queryKey } from '../../react/tests/utils'
-import { QueryClient, makeQueryClient, makeInfiniteQueryObserver } from '../..'
+import {
+  QueryClient,
+  createQueryClient,
+  createInfiniteQueryObserver,
+} from '../..'
 
 describe('InfiniteQueryObserver', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
-    queryClient = makeQueryClient()
+    queryClient = createQueryClient()
     queryClient.mount()
   })
 
@@ -15,7 +19,7 @@ describe('InfiniteQueryObserver', () => {
 
   test('InfiniteQueryObserver should be able to fetch an infinite query with selector', async () => {
     const key = queryKey()
-    const observer = makeInfiniteQueryObserver(queryClient, {
+    const observer = createInfiniteQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => 1,
       select: data => ({

@@ -1,6 +1,6 @@
 import React from "react";
 import { Typography } from "@material-ui/core";
-import { makeStyles } from "@material-ui/core/styles";
+import { createStyles } from "@material-ui/core/styles";
 import { Link } from "@material-ui/core";
 import { Link as RouterLink } from "react-router-dom";
 
@@ -47,11 +47,11 @@ export default function Home(props) {
   );
 }
 
-const useStyles = makeStyles(theme => ({
+const useStyles = createStyles((theme) => ({
   main: {
     margin: "44px 0",
     "& p": {
-      margin: "12px 0 24px"
-    }
-  }
+      margin: "12px 0 24px",
+    },
+  },
 }));

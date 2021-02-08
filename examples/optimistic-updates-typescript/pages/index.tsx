@@ -11,7 +11,7 @@ import {
 } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
 
-const client = makeQueryClient()
+const client = createQueryClient()
 
 type Todos = {
   items: readonly {

@@ -1,8 +1,8 @@
 import { sleep, queryKey } from '../../react/tests/utils'
 import {
-  makeQueryClient,
+  createQueryClient,
   QueryClient,
-  makeQueriesObserver,
+  createQueriesObserver,
   QueryObserverResult,
 } from '../..'
 
@@ -10,7 +10,7 @@ describe('queriesObserver', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
-    queryClient = makeQueryClient()
+    queryClient = createQueryClient()
     queryClient.mount()
   })
 
@@ -23,7 +23,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = makeQueriesObserver(queryClient, [
+    const observer = createQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -41,7 +41,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = makeQueriesObserver(queryClient, [
+    const observer = createQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -68,7 +68,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = makeQueriesObserver(queryClient, [
+    const observer = createQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -100,7 +100,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = makeQueriesObserver(queryClient, [
+    const observer = createQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -130,7 +130,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn().mockReturnValue(1)
     const queryFn2 = jest.fn().mockReturnValue(2)
-    const observer = makeQueriesObserver(queryClient, [
+    const observer = createQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])
@@ -159,7 +159,7 @@ describe('queriesObserver', () => {
     const key2 = queryKey()
     const queryFn1 = jest.fn()
     const queryFn2 = jest.fn()
-    const observer = makeQueriesObserver(queryClient, [
+    const observer = createQueriesObserver(queryClient, [
       { queryKey: key1, queryFn: queryFn1 },
       { queryKey: key2, queryFn: queryFn2 },
     ])

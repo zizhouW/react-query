@@ -8,7 +8,7 @@ title: QueriesObserver
 The `QueriesObserver` can be used to observe multiple queries.
 
 ```js
-const observer = makeQueriesObserver(queryClient, [
+const observer = createQueriesObserver(queryClient, [
   { queryKey: ['post', 1], queryFn: fetchPost },
   { queryKey: ['post', 2], queryFn: fetchPost },
 ])

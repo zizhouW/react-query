@@ -10,7 +10,7 @@ The `QueryClient` can be used to interact with a cache:
 ```js
 import { QueryClient } from 'react-query'
 
-const queryClient = makeQueryClient({
+const queryClient = createQueryClient({
   defaultOptions: {
     queries: {
       staleTime: Infinity,
@@ -226,11 +226,15 @@ The `invalidateQueries` method can be used to invalidate and refetch single or m
 - If you **want inactive queries to refetch** as well, use the `refetchInactive: true` option
 
 ```js
-await queryClient.invalidateQueries('posts', {
-  exact,
-  refetchActive: true,
-  refetchInactive: false
-}, { throwOnError })
+await queryClient.invalidateQueries(
+  'posts',
+  {
+    exact,
+    refetchActive: true,
+    refetchInactive: false,
+  },
+  { throwOnError }
+)
 ```
 
 **Options**

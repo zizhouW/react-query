@@ -86,7 +86,7 @@ import { QueryClient, useQuery } from 'react-query'
 import { dehydrate } from 'react-query/hydration'
 
 export async function getStaticProps() {
-  const queryClient = makeQueryClient()
+  const queryClient = createQueryClient()
 
   await queryClient.prefetchQuery('posts', getPosts)
 
@@ -170,7 +170,7 @@ import { Hydrate } from 'react-query/hydration'
 
 const dehydratedState = window.__REACT_QUERY_STATE__
 
-const queryClient = makeQueryClient()
+const queryClient = createQueryClient()
 
 ReactDOM.hydrate(
   <QueryClientProvider client={queryClient}>

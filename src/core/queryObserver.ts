@@ -74,7 +74,7 @@ export type QueryObserver<
   onQueryUpdate(action: Action<TData, TError>): void
 }
 
-export function makeQueryObserver<
+export function createQueryObserver<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,

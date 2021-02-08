@@ -1,4 +1,4 @@
-import { makeQueryObserver } from '../core'
+import { createQueryObserver } from '../core'
 import { UseQueryOptions, UseQueryResult } from './types'
 import { useBaseQuery } from './useBaseQuery'
 
@@ -11,5 +11,5 @@ export function useQuery<
 >(
   options: UseQueryOptions<TQueryFnData, TError, TData>
 ): UseQueryResult<TData, TError> {
-  return useBaseQuery(options, makeQueryObserver)
+  return useBaseQuery(options, createQueryObserver)
 }

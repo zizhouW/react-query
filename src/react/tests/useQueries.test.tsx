@@ -3,14 +3,14 @@ import React from 'react'
 import { queryKey, renderWithClient, sleep } from './utils'
 import {
   useQueries,
-  makeQueryClient,
+  createQueryClient,
   UseQueryResult,
-  makeQueryCache,
+  createQueryCache,
 } from '../..'
 
 describe('useQueries', () => {
-  const queryCache = makeQueryCache()
-  const queryClient = makeQueryClient({ queryCache })
+  const queryCache = createQueryCache()
+  const queryClient = createQueryClient({ queryCache })
 
   it('should return the correct states', async () => {
     const key1 = queryKey()

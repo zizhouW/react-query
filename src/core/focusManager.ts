@@ -6,7 +6,7 @@ export type FocusManager = {
   isFocused(): boolean
 }
 
-function makeFocusManager() {
+function createFocusManager() {
   let focused = false
   let removeEventListener: () => void = noop
 
@@ -84,4 +84,4 @@ function makeFocusManager() {
   }
 }
 
-export const focusManager = makeFocusManager()
+export const focusManager = createFocusManager()

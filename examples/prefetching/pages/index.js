@@ -22,7 +22,7 @@ const getCharacter = async selectedChar => {
   return data
 }
 
-const queryClient = makeQueryClient()
+const queryClient = createQueryClient()
 
 export default function App() {
   return (

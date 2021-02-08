@@ -3,9 +3,9 @@ import { render, waitFor } from '@testing-library/react'
 
 import { sleep, queryKey } from './utils'
 import {
-  makeQueryClient,
+  createQueryClient,
   QueryClientProvider,
-  makeQueryCache,
+  createQueryCache,
   useQuery,
 } from '../..'
 
@@ -13,8 +13,8 @@ describe('QueryClientProvider', () => {
   test('sets a specific cache for all queries to use', async () => {
     const key = queryKey()
 
-    const queryCache = makeQueryCache()
-    const queryClient = makeQueryClient({ queryCache })
+    const queryCache = createQueryCache()
+    const queryClient = createQueryClient({ queryCache })
 
     function Page() {
       const { data } = useQuery({
@@ -47,11 +47,11 @@ describe('QueryClientProvider', () => {
     const key1 = queryKey()
     const key2 = queryKey()
 
-    const queryCache1 = makeQueryCache()
-    const queryCache2 = makeQueryCache()
+    const queryCache1 = createQueryCache()
+    const queryCache2 = createQueryCache()
 
-    const queryClient1 = makeQueryClient({ queryCache: queryCache1 })
-    const queryClient2 = makeQueryClient({ queryCache: queryCache2 })
+    const queryClient1 = createQueryClient({ queryCache: queryCache1 })
+    const queryClient2 = createQueryClient({ queryCache: queryCache2 })
 
     function Page1() {
       const { data } = useQuery({
@@ -107,8 +107,8 @@ describe('QueryClientProvider', () => {
   test("uses defaultOptions for queries when they don't provide their own config", async () => {
     const key = queryKey()
 
-    const queryCache = makeQueryCache()
-    const queryClient = makeQueryClient({
+    const queryCache = createQueryCache()
+    const queryClient = createQueryClient({
       queryCache,
       defaultOptions: {
         queries: {

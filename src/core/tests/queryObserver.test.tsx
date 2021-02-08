@@ -6,8 +6,8 @@ import {
 } from '../../react/tests/utils'
 import {
   QueryClient,
-  makeQueryClient,
-  makeQueryObserver,
+  createQueryClient,
+  createQueryObserver,
   QueryObserverResult,
 } from '../..'
 
@@ -15,7 +15,7 @@ describe('queryObserver', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
-    queryClient = makeQueryClient()
+    queryClient = createQueryClient()
     queryClient.mount()
   })
 
@@ -26,7 +26,10 @@ describe('queryObserver', () => {
   test('should trigger a fetch when subscribed', async () => {
     const key = queryKey()
     const queryFn = jest.fn()
-    const observer = makeQueryObserver(queryClient, { queryKey: key, queryFn })
+    const observer = createQueryObserver(queryClient, {
+      queryKey: key,
+      queryFn,
+    })
     const unsubscribe = observer.subscribe()
     await sleep(1)
     unsubscribe()
@@ -37,7 +40,7 @@ describe('queryObserver', () => {
     const key1 = queryKey()
     const key2 = queryKey()
     const results: QueryObserverResult[] = []
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key1,
       queryFn: () => 1,
     })
@@ -57,7 +60,7 @@ describe('queryObserver', () => {
   test('should notify when the query has updated before subscribing', async () => {
     const key = queryKey()
     const results: QueryObserverResult[] = []
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => 1,
       staleTime: Infinity,
@@ -74,7 +77,7 @@ describe('queryObserver', () => {
 
   test('should be able to fetch with a selector', async () => {
     const key = queryKey()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => ({ count: 1 }),
       select: data => ({ myCount: data.count }),
@@ -91,7 +94,7 @@ describe('queryObserver', () => {
 
   test('should be able to fetch with a selector using the fetch method', async () => {
     const key = queryKey()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => ({ count: 1 }),
       select: data => ({ myCount: data.count }),
@@ -103,7 +106,7 @@ describe('queryObserver', () => {
 
   test('should be able to fetch with a selector and object syntax', async () => {
     const key = queryKey()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => ({ count: 1 }),
       select: data => ({ myCount: data.count }),
@@ -120,7 +123,7 @@ describe('queryObserver', () => {
   test('should run the selector again if the data changed', async () => {
     const key = queryKey()
     let count = 0
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => ({ count }),
       select: data => {
@@ -148,7 +151,7 @@ describe('queryObserver', () => {
       count++
       return { myCount: 99 }
     }
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn,
       select: select1,
@@ -179,7 +182,7 @@ describe('queryObserver', () => {
       count++
       return { myCount: data.count }
     }
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn,
       select,
@@ -203,7 +206,7 @@ describe('queryObserver', () => {
   test('should not run the selector again if the data did not change', async () => {
     const key = queryKey()
     let count = 0
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => ({ count: 1 }),
       select: data => {
@@ -221,7 +224,7 @@ describe('queryObserver', () => {
   test('should structurally share the selector', async () => {
     const key = queryKey()
     let count = 0
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => ({ count: ++count }),
       select: () => ({ myCount: 1 }),
@@ -235,7 +238,7 @@ describe('queryObserver', () => {
   test('should not trigger a fetch when subscribed and disabled', async () => {
     const key = queryKey()
     const queryFn = jest.fn()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn,
       enabled: false,
@@ -249,7 +252,7 @@ describe('queryObserver', () => {
   test('should not trigger a fetch when not subscribed', async () => {
     const key = queryKey()
     const queryFn = jest.fn()
-    makeQueryObserver(queryClient, { queryKey: key, queryFn })
+    createQueryObserver(queryClient, { queryKey: key, queryFn })
     await sleep(1)
     expect(queryFn).toHaveBeenCalledTimes(0)
   })
@@ -258,7 +261,7 @@ describe('queryObserver', () => {
     const key = queryKey()
     const queryFn = jest.fn()
     const callback = jest.fn()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       enabled: false,
     })
@@ -272,7 +275,7 @@ describe('queryObserver', () => {
   test('should accept unresolved query config in update function', async () => {
     const key = queryKey()
     const queryFn = jest.fn()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       enabled: false,
     })
@@ -294,7 +297,7 @@ describe('queryObserver', () => {
   test('should be able to handle multiple subscribers', async () => {
     const key = queryKey()
     const queryFn = jest.fn().mockReturnValue('data')
-    const observer = makeQueryObserver<string>(queryClient, {
+    const observer = createQueryObserver<string>(queryClient, {
       queryKey: key,
       enabled: false,
     })
@@ -322,7 +325,7 @@ describe('queryObserver', () => {
   test('should be able to resolve a promise', async () => {
     const key = queryKey()
     const queryFn = jest.fn().mockReturnValue('data')
-    const observer = makeQueryObserver<string>(queryClient, {
+    const observer = createQueryObserver<string>(queryClient, {
       queryKey: key,
       enabled: false,
     })
@@ -339,7 +342,7 @@ describe('queryObserver', () => {
   test('should be able to resolve a promise with an error', async () => {
     const consoleMock = mockConsoleError()
     const key = queryKey()
-    const observer = makeQueryObserver<string>(queryClient, {
+    const observer = createQueryObserver<string>(queryClient, {
       queryKey: key,
       enabled: false,
     })
@@ -360,7 +363,7 @@ describe('queryObserver', () => {
     const consoleMock = mockConsoleError()
     const key = queryKey()
     let count = 0
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => {
         count++
@@ -381,7 +384,7 @@ describe('queryObserver', () => {
     const key = queryKey()
 
     const fetchData = () => Promise.resolve('data')
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: fetchData,
       cacheTime: 0,
@@ -399,7 +402,7 @@ describe('queryObserver', () => {
 
   test('uses placeholderData as non-cache data when loading a query with no data', async () => {
     const key = queryKey()
-    const observer = makeQueryObserver(queryClient, {
+    const observer = createQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => 'data',
       placeholderData: 'placeholder',

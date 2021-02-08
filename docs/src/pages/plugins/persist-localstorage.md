@@ -16,7 +16,7 @@ Import the `persistWithLocalStorage` function, and pass it your `QueryClient` in
 ```js
 import { persistWithLocalStorage } from 'react-query/persist-localstorage-experimental'
 
-const queryClient = makeQueryClient({
+const queryClient = createQueryClient({
   defaultOptions: {
     queries: {
       cacheTime: 1000 * 60 * 60 * 24, // 24 hours

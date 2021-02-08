@@ -19,7 +19,7 @@ import type { QueryObserver } from './queryObserver'
 import { notifyManager } from './notifyManager'
 import { getLogger } from './logger'
 import {
-  makeRetryer,
+  createRetryer,
   CancelOptions,
   isCancelledError,
   Retryer,
@@ -160,7 +160,7 @@ export type Query<
   ): Promise<TData>
 }
 
-export function makeQuery<
+export function createQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData
@@ -376,7 +376,7 @@ export function makeQuery<
       }
 
       // Try to fetch the data
-      retryer = makeRetryer({
+      retryer = createRetryer({
         fn: context.fetchFn as () => TData,
         onSuccess: data => {
           query.setData(data as TData)

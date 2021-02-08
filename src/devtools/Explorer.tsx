@@ -137,7 +137,7 @@ export default function Explorer({
   let subEntries
   const subEntryPages = []
 
-  const makeProperty = sub => {
+  const createProperty = sub => {
     const newPath = path.concat(sub.label)
     const subDefaultExpanded =
       defaultExpanded === true
@@ -154,7 +154,7 @@ export default function Explorer({
   if (Array.isArray(value)) {
     type = 'array'
     subEntries = value.map((d, i) =>
-      makeProperty({
+      createProperty({
         label: i,
         value: d,
       })
@@ -166,7 +166,7 @@ export default function Explorer({
   ) {
     type = 'Iterable'
     subEntries = Array.from(value, (val, i) =>
-      makeProperty({
+      createProperty({
         label: i,
         value: val,
       })
@@ -175,7 +175,7 @@ export default function Explorer({
     type = 'object'
     // eslint-disable-next-line no-shadow
     subEntries = Object.entries(value).map(([label, value]) =>
-      makeProperty({
+      createProperty({
         label,
         value,
       })

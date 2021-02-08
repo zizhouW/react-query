@@ -8,7 +8,7 @@ Use the `QueryClientProvider` component to connect and provide a `QueryClient` t
 ```js
 import { QueryClient, QueryClientProvider } from 'react-query'
 
-const queryClient = makeQueryClient()
+const queryClient = createQueryClient()
 
 function App() {
   return <QueryClientProvider client={queryClient}>...</QueryClientProvider>

@@ -22,13 +22,13 @@ import type {
   ResetOptions,
 } from './types'
 import type { QueryState, SetDataOptions } from './query'
-import { makeMutationCache, MutationCache } from './mutationCache'
+import { createMutationCache, MutationCache } from './mutationCache'
 import { focusManager } from './focusManager'
 import { onlineManager } from './onlineManager'
 import { notifyManager } from './notifyManager'
 import { CancelOptions } from './retryer'
 import { infiniteQueryBehavior } from './infiniteQueryBehavior'
-import { makeQueryCache, QueryCache } from './queryCache'
+import { createQueryCache, QueryCache } from './queryCache'
 
 // TYPES
 
@@ -124,9 +124,9 @@ export type QueryClient = {
   clear(): void
 }
 
-export function makeQueryClient(config: QueryClientConfig = {}) {
-  const queryCache = config.queryCache || makeQueryCache()
-  const mutationCache = config.mutationCache || makeMutationCache()
+export function createQueryClient(config: QueryClientConfig = {}) {
+  const queryCache = config.queryCache || createQueryCache()
+  const mutationCache = config.mutationCache || createMutationCache()
   let defaultOptions = config.defaultOptions || {}
   const queryDefaults: QueryDefaults[] = []
   const mutationDefaults: MutationDefaults[] = []

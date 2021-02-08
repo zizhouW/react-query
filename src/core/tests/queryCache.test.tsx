@@ -1,13 +1,13 @@
 import { sleep, queryKey, mockConsoleError } from '../../react/tests/utils'
-import { QueryCache, QueryClient, makeQueryClient } from '../..'
-import { makeQueryCache } from '../queryCache'
+import { QueryCache, QueryClient, createQueryClient } from '../..'
+import { createQueryCache } from '../queryCache'
 
 describe('queryCache', () => {
   let queryClient: QueryClient
   let queryCache: QueryCache
 
   beforeEach(() => {
-    queryClient = makeQueryClient()
+    queryClient = createQueryClient()
     queryCache = queryClient.getQueryCache()
   })
 
@@ -170,8 +170,8 @@ describe('queryCache', () => {
       const consoleMock = mockConsoleError()
       const key = queryKey()
       const onError = jest.fn()
-      const testCache = makeQueryCache({ onError })
-      const testClient = makeQueryClient({ queryCache: testCache })
+      const testCache = createQueryCache({ onError })
+      const testClient = createQueryClient({ queryCache: testCache })
       await testClient.prefetchQuery({
         queryKey: key,
         queryFn: () => Promise.reject('error'),

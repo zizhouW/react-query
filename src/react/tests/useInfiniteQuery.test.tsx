@@ -12,8 +12,8 @@ import {
 import {
   useInfiniteQuery,
   UseInfiniteQueryResult,
-  makeQueryClient,
-  makeQueryCache,
+  createQueryClient,
+  createQueryCache,
 } from '../..'
 import { CancelledError } from '../../core'
 
@@ -42,8 +42,8 @@ const fetchItems = async (
 }
 
 describe('useInfiniteQuery', () => {
-  const queryCache = makeQueryCache()
-  const queryClient = makeQueryClient({ queryCache })
+  const queryCache = createQueryCache()
+  const queryClient = createQueryClient({ queryCache })
 
   it('should return the correct states for a successful query', async () => {
     const key = queryKey()

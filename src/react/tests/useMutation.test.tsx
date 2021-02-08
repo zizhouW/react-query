@@ -3,9 +3,9 @@ import React from 'react'
 
 import {
   useMutation,
-  makeQueryClient,
-  makeQueryCache,
-  makeMutationCache,
+  createQueryClient,
+  createQueryCache,
+  createMutationCache,
 } from '../..'
 import { UseMutationResult } from '../types'
 import {
@@ -18,9 +18,9 @@ import {
 } from './utils'
 
 describe('useMutation', () => {
-  const queryCache = makeQueryCache()
-  const mutationCache = makeMutationCache()
-  const queryClient = makeQueryClient({ queryCache, mutationCache })
+  const queryCache = createQueryCache()
+  const mutationCache = createMutationCache()
+  const queryClient = createQueryClient({ queryCache, mutationCache })
 
   it('should be able to reset `data`', async () => {
     function Page() {

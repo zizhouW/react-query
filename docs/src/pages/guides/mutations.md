@@ -211,7 +211,7 @@ If mutations fail because the device is offline, they will be retried in the sam
 Mutations can be persisted to storage if needed and resumed at a later point. This can be done with the hydration functions:
 
 ```js
-const queryClient = makeQueryClient()
+const queryClient = createQueryClient()
 
 // Define the "addTodo" mutation
 queryClient.setMutationDefaults('addTodo', {

@@ -13,16 +13,16 @@ import {
 } from './utils'
 import {
   useQuery,
-  makeQueryClient,
+  createQueryClient,
   UseQueryResult,
-  makeQueryCache,
+  createQueryCache,
   QueryFunctionContext,
 } from '../..'
 import { CancelledError } from '../../core'
 
 describe('useQuery', () => {
-  const queryCache = makeQueryCache()
-  const queryClient = makeQueryClient({ queryCache })
+  const queryCache = createQueryCache()
+  const queryClient = createQueryClient({ queryCache })
 
   it('should return the correct types', () => {
     const key = queryKey()
@@ -362,7 +362,11 @@ describe('useQuery', () => {
     const onSuccess = jest.fn()
 
     function Page() {
-      const state = useQuery({ queryKey: key, queryFn: () => 'data', onSuccess })
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'data',
+        onSuccess,
+      })
 
       states.push(state)
 
@@ -814,7 +818,9 @@ describe('useQuery', () => {
     const states: UseQueryResult<string>[] = []
 
     function Page() {
-      const state = useQuery({queryKey: key, queryFn: () => 'test', 
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'test',
         notifyOnChangeProps: 'tracked',
       })
 
@@ -849,7 +855,9 @@ describe('useQuery', () => {
     const states: UseQueryResult<string>[] = []
 
     function Page() {
-      const state = useQuery({queryKey: key, queryFn: () => 'test', 
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'test',
         notifyOnChangeProps: 'tracked',
         notifyOnChangePropsExclusions: ['data'],
       })
@@ -869,7 +877,7 @@ describe('useQuery', () => {
     expect(states.length).toBe(1)
     expect(states[0]).toMatchObject({ data: undefined })
 
-    await queryClient.refetchQueries({queryKey: key})
+    await queryClient.refetchQueries({ queryKey: key })
     await waitFor(() => rendered.getByText('null'))
     expect(states.length).toBe(1)
     expect(states[0]).toMatchObject({ data: undefined })
@@ -881,7 +889,9 @@ describe('useQuery', () => {
     const states: UseQueryResult<string>[] = []
 
     function Page() {
-      const state = useQuery({queryKey: key , queryFn: () => 'test', 
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'test',
         notifyOnChangeProps: 'tracked',
       })
 
@@ -923,7 +933,9 @@ describe('useQuery', () => {
     const states: UseQueryResult<string>[] = []
 
     function Page() {
-      const state = useQuery({queryKey: key, queryFn: () => 'test', 
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'test',
         notifyOnChangeProps: 'tracked',
       })
 
@@ -1350,18 +1362,17 @@ describe('useQuery', () => {
     const states: UseQueryResult<number>[] = []
 
     function Page({ count }: { count: number }) {
-      const state = useQuery<number, Error>(
-        {queryKey: [key, count],
+      const state = useQuery<number, Error>({
+        queryKey: [key, count],
         queryFn: async () => {
           if (count === 2) {
             throw new Error('Error test')
           }
           return Promise.resolve(count)
         },
-          retry: false,
-          keepPreviousData: true,
-        }
-      )
+        retry: false,
+        keepPreviousData: true,
+      })
 
       states.push(state)
 
@@ -2018,7 +2029,11 @@ describe('useQuery', () => {
     }
 
     function Page() {
-      const state = useQuery({queryKey: key, queryFn: () => 'data',  staleTime: Infinity })
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'data',
+        staleTime: Infinity,
+      })
       states.push(state)
       return null
     }
@@ -2840,10 +2855,13 @@ describe('useQuery', () => {
     queryClient.setQueryData(key, 'prefetched')
 
     function Page() {
-      const state = useQuery({ queryKey: key, queryFn: async () => {
-        await sleep(1)
-        return 'data'
-      }})
+      const state = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(1)
+          return 'data'
+        },
+      })
       states.push(state)
       return null
     }
@@ -3439,7 +3457,7 @@ describe('useQuery', () => {
       const [id, setId] = React.useState(1)
       const [hasChanged, setHasChanged] = React.useState(false)
 
-      const state = useQuery({queryKey: [key, id], queryFn})
+      const state = useQuery({ queryKey: [key, id], queryFn })
 
       states.push(state)
 

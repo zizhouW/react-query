@@ -29,7 +29,7 @@ export function useCustomHook() {
 We can write a test for this as follows:
 
 ```
-const queryClient = makeQueryClient();
+const queryClient = createQueryClient();
 const wrapper = ({ children }) => (
   <QueryClientProvider client={queryClient}>
     {children}
@@ -62,7 +62,7 @@ function useFetchData() {
 We can write a test for this as follows:
 
 ```
-const queryClient = makeQueryClient();
+const queryClient = createQueryClient();
 const wrapper = ({ children }) => (
   <QueryClientProvider client={queryClient}>
     {children}

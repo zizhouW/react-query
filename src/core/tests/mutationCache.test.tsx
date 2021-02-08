@@ -1,5 +1,5 @@
 import { queryKey, mockConsoleError } from '../../react/tests/utils'
-import { makeMutationCache, makeQueryClient } from '../..'
+import { createMutationCache, createQueryClient } from '../..'
 
 describe('mutationCache', () => {
   describe('MutationCacheConfig.onError', () => {
@@ -7,8 +7,8 @@ describe('mutationCache', () => {
       const consoleMock = mockConsoleError()
       const key = queryKey()
       const onError = jest.fn()
-      const testCache = makeMutationCache({ onError })
-      const testClient = makeQueryClient({ mutationCache: testCache })
+      const testCache = createMutationCache({ onError })
+      const testClient = createQueryClient({ mutationCache: testCache })
 
       try {
         await testClient.executeMutation({

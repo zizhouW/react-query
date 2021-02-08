@@ -9,7 +9,7 @@ import { ReactQueryDevtools } from "react-query/devtools";
 import "./styles.css";
 import Layout from "./Layout";
 
-const queryClient = makeQueryClient();
+const queryClient = createQueryClient();
 
 export default function App() {
   return (

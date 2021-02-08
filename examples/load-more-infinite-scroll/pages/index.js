@@ -9,7 +9,7 @@ import { ReactQueryDevtools } from 'react-query/devtools'
 
 import useIntersectionObserver from '../hooks/useIntersectionObserver'
 
-const queryClient = makeQueryClient()
+const queryClient = createQueryClient()
 
 export default function App() {
   return (

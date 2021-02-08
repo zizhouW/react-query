@@ -1,5 +1,5 @@
 import { QueryFilters, getQueryKeyHashFn, matchQuery } from './utils'
-import { makeQuery, Query, QueryState } from './query'
+import { createQuery, Query, QueryState } from './query'
 import type { QueryOptions } from './types'
 import { notifyManager } from './notifyManager'
 import type { QueryClient } from './queryClient'
@@ -43,7 +43,7 @@ export type QueryCache = {
   onOnline(): void
 }
 
-export function makeQueryCache(config?: QueryCacheConfig) {
+export function createQueryCache(config?: QueryCacheConfig) {
   let queries: Query<any, any>[] = []
   const queriesMap: QueryHashMap = {}
   const subscribable = Subscribable<QueryCacheListener>()
@@ -62,7 +62,7 @@ export function makeQueryCache(config?: QueryCacheConfig) {
       let query = queryCache.get<TQueryFnData, TError, TData>(queryHash)
 
       if (!query) {
-        query = makeQuery<TQueryFnData, TError, TData>({
+        query = createQuery<TQueryFnData, TError, TData>({
           cache: queryCache,
           queryKey,
           queryHash,

@@ -28,7 +28,7 @@ export type NotifyManager = {
   setBatchNotifyFunction(fn: BatchNotifyFunction): void
 }
 
-function makeNotifyManager(): NotifyManager {
+function createNotifyManager(): NotifyManager {
   let queue: NotifyCallback[] = []
   let transactions = 0
   let notifyFn: NotifyFunction = (callback: () => void) => {
@@ -89,4 +89,4 @@ function makeNotifyManager(): NotifyManager {
 
 // SINGLETON
 
-export const notifyManager = makeNotifyManager()
+export const notifyManager = createNotifyManager()

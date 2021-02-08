@@ -67,7 +67,7 @@ export type Retryer<TData> = {
   proceed(): void
 }
 
-export function makeRetryer<TData = unknown, TError = unknown>(
+export function createRetryer<TData = unknown, TError = unknown>(
   config: RetryerConfig<TData, TError>
 ) {
   let isRetryCancelled = false

@@ -8,7 +8,7 @@ title: InfiniteQueryObserver
 The `InfiniteQueryObserver` can be used to observe and switch between infinite queries.
 
 ```js
-const observer = makeInfiniteQueryObserver(queryClient, {
+const observer = createInfiniteQueryObserver(queryClient, {
   queryKey: 'posts',
   queryFn: fetchPosts,
   getNextPageParam: (lastPage, allPages) => lastPage.nextCursor,

@@ -2,9 +2,9 @@ import React from 'react'
 import { render } from '@testing-library/react'
 
 import {
-  makeQueryClient,
+  createQueryClient,
   QueryClientProvider,
-  makeQueryCache,
+  createQueryCache,
   useQuery,
 } from '../..'
 import { dehydrate, useHydrate, Hydrate } from '../'
@@ -17,8 +17,8 @@ describe('React hydration', () => {
   let stringifiedState: string
 
   beforeAll(async () => {
-    const queryCache = makeQueryCache()
-    const queryClient = makeQueryClient({ queryCache })
+    const queryCache = createQueryCache()
+    const queryClient = createQueryClient({ queryCache })
     await queryClient.prefetchQuery({
       queryKey: 'string',
       queryFn: () => dataQuery('string'),
@@ -31,8 +31,8 @@ describe('React hydration', () => {
   describe('useHydrate', () => {
     test('should hydrate queries to the cache on context', async () => {
       const dehydratedState = JSON.parse(stringifiedState)
-      const queryCache = makeQueryCache()
-      const queryClient = makeQueryClient({ queryCache })
+      const queryCache = createQueryCache()
+      const queryClient = createQueryClient({ queryCache })
 
       function Page() {
         useHydrate(dehydratedState)
@@ -62,8 +62,8 @@ describe('React hydration', () => {
   describe('ReactQueryCacheProvider with hydration support', () => {
     test('should hydrate new queries if queries change', async () => {
       const dehydratedState = JSON.parse(stringifiedState)
-      const queryCache = makeQueryCache()
-      const queryClient = makeQueryClient({ queryCache })
+      const queryCache = createQueryCache()
+      const queryClient = createQueryClient({ queryCache })
 
       function Page({ queryKey }: { queryKey: string }) {
         const { data } = useQuery({
@@ -88,8 +88,8 @@ describe('React hydration', () => {
       await sleep(10)
       rendered.getByText('string')
 
-      const intermediateCache = makeQueryCache()
-      const intermediateClient = makeQueryClient({
+      const intermediateCache = createQueryCache()
+      const intermediateClient = createQueryClient({
         queryCache: intermediateCache,
       })
       await intermediateClient.prefetchQuery({
@@ -124,8 +124,8 @@ describe('React hydration', () => {
 
     test('should hydrate queries to new cache if cache changes', async () => {
       const dehydratedState = JSON.parse(stringifiedState)
-      const queryCache = makeQueryCache()
-      const queryClient = makeQueryClient({ queryCache })
+      const queryCache = createQueryCache()
+      const queryClient = createQueryClient({ queryCache })
 
       function Page() {
         const { data } = useQuery({
@@ -150,8 +150,8 @@ describe('React hydration', () => {
       await sleep(10)
       rendered.getByText('string')
 
-      const newClientQueryCache = makeQueryCache()
-      const newClientQueryClient = makeQueryClient({
+      const newClientQueryCache = createQueryCache()
+      const newClientQueryClient = createQueryClient({
         queryCache: newClientQueryCache,
       })
 

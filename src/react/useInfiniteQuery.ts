@@ -1,5 +1,5 @@
-import { makeQueryObserver } from '../core'
-import { makeInfiniteQueryObserver } from '../core/infiniteQueryObserver'
+import { createQueryObserver } from '../core'
+import { createInfiniteQueryObserver } from '../core/infiniteQueryObserver'
 import {
   UseBaseQueryOptions,
   UseInfiniteQueryOptions,
@@ -18,6 +18,6 @@ export function useInfiniteQuery<
 ): UseInfiniteQueryResult<TData, TError> {
   return useBaseQuery(
     options as UseBaseQueryOptions,
-    makeInfiniteQueryObserver as typeof makeQueryObserver
+    createInfiniteQueryObserver as typeof createQueryObserver
   ) as UseInfiniteQueryResult<TData, TError>
 }

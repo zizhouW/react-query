@@ -15,7 +15,7 @@ const defaultQueryFn = async ({ queryKey }) => {
 }
 
 // provide the default query function to your app with defaultOptions
-const queryClient = makeQueryClient({
+const queryClient = createQueryClient({
   defaultOptions: {
     queries: {
       queryFn: defaultQueryFn,

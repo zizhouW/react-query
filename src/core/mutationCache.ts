@@ -1,7 +1,7 @@
 import type { MutationOptions } from './types'
 import type { QueryClient } from './queryClient'
 import { notifyManager } from './notifyManager'
-import { makeMutation, Mutation, MutationState } from './mutation'
+import { createMutation, Mutation, MutationState } from './mutation'
 import { noop } from './utils'
 import { Subscribable } from './subscribable'
 
@@ -35,7 +35,7 @@ export type MutationCache = {
   resumePausedMutations(): Promise<void>
 }
 
-export function makeMutationCache(userConfig?: MutationCacheConfig) {
+export function createMutationCache(userConfig?: MutationCacheConfig) {
   let mutations: Mutation<any, any, any, any>[] = []
   let mutationId = 0
 
@@ -48,7 +48,7 @@ export function makeMutationCache(userConfig?: MutationCacheConfig) {
       options: MutationOptions<TData, TError, TVariables, TContext>,
       state?: MutationState<TData, TError, TVariables, TContext>
     ): Mutation<TData, TError, TVariables, TContext> {
-      const mutation = makeMutation<TData, TError, TVariables, TContext>({
+      const mutation = createMutation<TData, TError, TVariables, TContext>({
         mutationCache,
         mutationId: ++mutationId,
         options: client.defaultMutationOptions(options),
