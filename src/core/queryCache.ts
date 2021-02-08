@@ -111,6 +111,7 @@ export function makeQueryCache(config?: QueryCacheConfig) {
       return queries
     },
     find: (filters = {}) => {
+      filters.exact = filters.exact ?? true
       return queries.find(query => matchQuery(filters, query))
     },
     findAll: filters =>

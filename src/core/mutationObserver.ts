@@ -121,7 +121,10 @@ export function makeMutationObserver<
 
       currentMutation = client.getMutationCache().build(client, {
         ...mutationObserver.options,
-        variables: variables ?? mutationObserver.options.variables,
+        variables:
+          typeof variables !== 'undefined'
+            ? variables
+            : mutationObserver.options.variables,
       })
 
       currentMutation!.addObserver(mutationObserver)

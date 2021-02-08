@@ -1,10 +1,12 @@
 import React from 'react'
 
+import { QueryObserverResult } from '../core/types'
 import { notifyManager } from '../core/notifyManager'
 import { makeQueryObserver, QueryObserver } from '../core/queryObserver'
 import { useQueryErrorResetBoundary } from './QueryErrorResetBoundary'
 import { useQueryClient } from './QueryClientProvider'
 import { UseBaseQueryOptions } from './types'
+import { useIsMounted } from './useIsMounted'
 
 // UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData>
 // typeof makeQueryObserver
@@ -18,6 +20,7 @@ export function useBaseQuery<
   > = UseBaseQueryOptions,
   TMakeObserver extends typeof makeQueryObserver = typeof makeQueryObserver
 >(options: TOptions, makeObserver: TMakeObserver) {
+  const isMounted = useIsMounted()
   const queryClient = useQueryClient()
   const errorResetBoundary = useQueryErrorResetBoundary()
   const defaultedOptions = queryClient.defaultQueryObserverOptions(options)
@@ -71,8 +74,14 @@ export function useBaseQuery<
   // Subscribe to the observer
   React.useEffect(() => {
     errorResetBoundary.clearReset()
-    return observer.subscribe(notifyManager.batchCalls(setCurrentResult))
-  }, [observer, errorResetBoundary])
+    return observer.subscribe(
+      notifyManager.batchCalls((result: QueryObserverResult) => {
+        if (isMounted()) {
+          setCurrentResult(result)
+        }
+      })
+    )
+  }, [observer, errorResetBoundary, isMounted])
 
   // Handle suspense
   if (observer.options.suspense || observer.options.useErrorBoundary) {
@@ -87,5 +96,7 @@ export function useBaseQuery<
     }
   }
 
-  return currentResult
+  return observer.options.notifyOnChangeProps === 'tracked'
+    ? observer.getTrackedCurrentResult()
+    : currentResult
 }

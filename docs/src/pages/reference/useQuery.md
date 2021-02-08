@@ -6,15 +6,19 @@ title: useQuery
 ```js
 const {
   data,
+  dataUpdatedAt,
   error,
+  errorUpdatedAt,
   failureCount,
   isError,
   isFetchedAfterMount,
   isFetching,
   isIdle,
   isLoading,
+  isLoadingError,
   isPlaceholderData,
   isPreviousData,
+  isRefetchError,
   isStale,
   isSuccess,
   refetch,
@@ -24,6 +28,7 @@ const {
   cacheTime,
   enabled,
   initialData,
+  initialDataUpdatedAt
   isDataEqual,
   keepPreviousData,
   notifyOnChangeProps,
@@ -39,7 +44,7 @@ const {
   refetchOnWindowFocus,
   retry,
   retryDelay,
-  select
+  select,
   staleTime,
   structuralSharing,
   suspense,
@@ -109,10 +114,11 @@ const result = useQuery({
   - If set to `true`, the query will refetch on reconnect if the data is stale.
   - If set to `false`, the query will not refetch on reconnect.
   - If set to `"always"`, the query will always refetch on reconnect.
-- `notifyOnChangeProps: string[]`
+- `notifyOnChangeProps: string[] | "tracked"`
   - Optional
   - If set, the component will only re-render if any of the listed properties change.
   - If set to `['data', 'error']` for example, the component will only re-render when the `data` or `error` properties change.
+  - If set to `"tracked"`, access to properties will be tracked, and the component will only re-render when one of the tracked properties change.
 - `notifyOnChangePropsExclusions: string[]`
   - Optional
   - If set, the component will not re-render if any of the listed properties change.
@@ -140,6 +146,9 @@ const result = useQuery({
   - If set to a function, the function will be called **once** during the shared/root query initialization, and be expected to synchronously return the initialData
   - Initial data is considered stale by default unless a `staleTime` has been set.
   - `initialData` **is persisted** to the cache
+- `initialDataUpdatedAt: number | (() => number | undefined)`
+  - Optional
+  - If set, this value will be used as the time (in milliseconds) of when the `initialData` itself was last updated.
 - `placeholderData: TData | () => TData`
   - Optional
   - If set, this value will be used as the placeholder data for this particular query observer while the query is still in the `loading` data and no initialData has been provided.
@@ -176,9 +185,13 @@ const result = useQuery({
 - `data: TData`
   - Defaults to `undefined`.
   - The last successfully resolved data for the query.
+- `dataUpdatedAt: number`
+  - The timestamp for when the query most recently returned the `status` as `"success"`.
 - `error: null | TError`
   - Defaults to `null`
   - The error object for the query, if an error was thrown.
+- `errorUpdatedAt: number`
+  - The timestamp for when the query most recently returned the `status` as `"error"`.
 - `isStale: boolean`
   - Will be `true` if the data in the cache is invalidated or if the data is older than the given `staleTime`.
 - `isPlaceholderData: boolean`
@@ -195,8 +208,9 @@ const result = useQuery({
   - The failure count for the query.
   - Incremented every time the query fails.
   - Reset to `0` when the query succeeds.
-- `refetch: (options: { throwOnError: boolean }) => Promise<UseQueryResult>`
+- `refetch: (options: { throwOnError: boolean, cancelRefetch: boolean }) => Promise<UseQueryResult>`
   - A function to manually refetch the query.
   - If the query errors, the error will only be logged. If you want an error to be thrown, pass the `throwOnError: true` option
+  - If `cancelRefetch` is `true`, then the current request will be cancelled before a new request is made
 - `remove: () => void`
   - A function to remove the query from the cache.

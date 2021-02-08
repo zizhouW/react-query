@@ -26,7 +26,14 @@ function OnlineManager() {
         return online
       }
 
-      return navigator.onLine === undefined || navigator.onLine
+      if (
+        typeof navigator === 'undefined' ||
+        typeof navigator.onLine === 'undefined'
+      ) {
+        return true
+      }
+
+      return navigator.onLine
     },
     setOnline: (val?: boolean): void => {
       online = val ?? false
@@ -51,6 +58,7 @@ function OnlineManager() {
     if (removeEventListener) {
       removeEventListener()
     }
+
     removeEventListener = setup((val?: boolean) => {
       if (typeof val === 'boolean') {
         onlineManager.setOnline(val)

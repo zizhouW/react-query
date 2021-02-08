@@ -15,6 +15,7 @@ import {
   makeQueryClient,
   makeQueryCache,
 } from '../..'
+import { CancelledError } from '../../core'
 
 interface Result {
   items: number[]
@@ -707,6 +708,54 @@ describe('useInfiniteQuery', () => {
     })
   })
 
+  it('should stop fetching additional pages when the component is unmounted', async () => {
+    const key = queryKey()
+    const states: UseInfiniteQueryResult<number>[] = []
+    let fetches = 0
+
+    function List() {
+      const state = useInfiniteQuery(
+        key,
+        async ({ pageParam }) => {
+          fetches++
+          await sleep(50)
+          return Number(pageParam)
+        },
+        {
+          initialData: { pages: [1, 2, 3, 4], pageParams: [1, 2, 3, 4] },
+          getNextPageParam: lastPage => lastPage + 1,
+        }
+      )
+
+      states.push(state)
+
+      return null
+    }
+
+    function Page() {
+      const [show, setShow] = React.useState(true)
+
+      React.useEffect(() => {
+        setActTimeout(() => {
+          setShow(false)
+        }, 75)
+      }, [])
+
+      return show ? <List /> : null
+    }
+
+    renderWithClient(queryClient, <Page />)
+
+    await sleep(300)
+
+    expect(states.length).toBe(1)
+    expect(fetches).toBe(2)
+    expect(queryClient.getQueryState(key)).toMatchObject({
+      status: 'error',
+      error: expect.any(CancelledError),
+    })
+  })
+
   it('should be able to override the cursor in the fetchNextPage callback', async () => {
     const key = queryKey()
     const states: UseInfiniteQueryResult<number>[] = []
@@ -851,6 +900,71 @@ describe('useInfiniteQuery', () => {
     expect(states[5]).toMatchObject({
       hasNextPage: true,
       data: { pages: [7, 8] },
+      isFetching: false,
+      isFetchingNextPage: false,
+      isSuccess: true,
+    })
+  })
+
+  it('should only refetch the first page when initialData is provided', async () => {
+    const key = queryKey()
+    const states: UseInfiniteQueryResult<number>[] = []
+
+    function Page() {
+      const state = useInfiniteQuery(
+        key,
+        async ({ pageParam }) => {
+          await sleep(10)
+          return pageParam
+        },
+        {
+          initialData: { pages: [1], pageParams: [1] },
+          getNextPageParam: lastPage => lastPage + 1,
+        }
+      )
+
+      states.push(state)
+
+      const { fetchNextPage } = state
+
+      React.useEffect(() => {
+        setActTimeout(() => {
+          fetchNextPage()
+        }, 20)
+      }, [fetchNextPage])
+
+      return null
+    }
+
+    renderWithClient(queryClient, <Page />)
+
+    await sleep(100)
+
+    expect(states.length).toBe(4)
+    expect(states[0]).toMatchObject({
+      data: { pages: [1] },
+      hasNextPage: true,
+      isFetching: true,
+      isFetchingNextPage: false,
+      isSuccess: true,
+    })
+    expect(states[1]).toMatchObject({
+      data: { pages: [1] },
+      hasNextPage: true,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isSuccess: true,
+    })
+    expect(states[2]).toMatchObject({
+      data: { pages: [1] },
+      hasNextPage: true,
+      isFetching: true,
+      isFetchingNextPage: true,
+      isSuccess: true,
+    })
+    expect(states[3]).toMatchObject({
+      data: { pages: [1, 2] },
+      hasNextPage: true,
       isFetching: false,
       isFetchingNextPage: false,
       isSuccess: true,

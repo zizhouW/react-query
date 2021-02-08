@@ -6,6 +6,8 @@ import { functionalUpdate, sleep } from './utils'
 
 interface RetryerConfig<TData = unknown, TError = unknown> {
   fn: () => TData | Promise<TData>
+  onError?: (error: TError) => void
+  onSuccess?: (data: TData) => void
   onFail?: (failureCount: number, error: TError) => void
   onPause?: () => void
   onContinue?: () => void
@@ -92,18 +94,6 @@ export function makeRetryer<TData = unknown, TError = unknown>(
     },
   }
 
-  const resolve = (value: any) => {
-    retryer.isResolved = true
-    continueFn?.()
-    promiseResolve(value)
-  }
-
-  const reject = (value: any) => {
-    retryer.isResolved = true
-    continueFn?.()
-    promiseReject(value)
-  }
-
   const pause = () => {
     return new Promise(continueResolve => {
       continueFn = continueResolve
@@ -116,14 +106,37 @@ export function makeRetryer<TData = unknown, TError = unknown>(
     })
   }
 
+  const resolve = (value: any) => {
+    if (!retryer.isResolved) {
+      retryer.isResolved = true
+      config.onSuccess?.(value)
+      continueFn?.()
+      promiseResolve(value)
+    }
+  }
+
+  const reject = (value: any) => {
+    if (!retryer.isResolved) {
+      retryer.isResolved = true
+      config.onError?.(value)
+      continueFn?.()
+      promiseReject(value)
+    }
+  }
+
   // Create loop function
   const run = () => {
     // Do nothing if already resolved
     if (retryer.isResolved) {
       return
     }
-
     let promiseOrValue: any
+    // Execute query
+    try {
+      promiseOrValue = config.fn()
+    } catch (error) {
+      promiseOrValue = Promise.reject(error)
+    }
 
     // Execute query
     try {
@@ -132,15 +145,17 @@ export function makeRetryer<TData = unknown, TError = unknown>(
       promiseOrValue = Promise.reject(error)
     }
 
-    // Create callback to cancel this fetch
+    // Create callback to cancel retryer fetch
     cancelFn = cancelOptions => {
-      reject(new CancelledError(cancelOptions))
+      if (!retryer.isResolved) {
+        reject(new CancelledError(cancelOptions))
 
-      // Cancel transport if supported
-      if (isCancelable(promiseOrValue)) {
-        try {
-          promiseOrValue.cancel()
-        } catch {}
+        // Cancel transport if supported
+        if (isCancelable(promiseOrValue)) {
+          try {
+            promiseOrValue.cancel()
+          } catch {}
+        }
       }
     }
 

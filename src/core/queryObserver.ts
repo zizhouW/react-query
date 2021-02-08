@@ -58,6 +58,7 @@ export type QueryObserver<
     newOptions?: QueryObserverOptions<TQueryFnData, TError, TData, TQueryData>
   ): void
   getCurrentResult(): QueryObserverResult<TData, TError>
+  getTrackedCurrentResult(): QueryObserverResult<TData, TError>
   getNextResult(
     resultOptions?: ResultOptions
   ): Promise<QueryObserverResult<TData, TError>>
@@ -90,6 +91,14 @@ export function makeQueryObserver<
   let initialErrorUpdateCount: number
   let staleTimeoutId: number | undefined
   let refetchIntervalId: number | undefined
+  let previousOptions: QueryObserverOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryData
+  >
+  const trackedProps: Array<keyof QueryObserverResult> = []
+  let trackedCurrentResult: QueryObserverResult<TData, TError>
 
   const subscribable = Subscribable<QueryObserverListener<TData, TError>>({
     onSubscribe(): void {
@@ -102,6 +111,7 @@ export function makeQueryObserver<
           executeFetch()
         }
 
+        updateResult()
         updateTimers()
       }
     },
@@ -157,9 +167,7 @@ export function makeQueryObserver<
       currentQuery.removeObserver(observer)
     },
     setOptions: newOptions => {
-      const prevOptions = observer.options
-      const prevQuery = currentQuery
-
+      previousOptions = observer.options
       observer.options = client.defaultQueryObserverOptions(newOptions)
 
       if (
@@ -171,49 +179,79 @@ export function makeQueryObserver<
 
       // Keep previous query key if the user does not supply one
       if (!observer.options.queryKey) {
-        observer.options.queryKey = prevOptions?.queryKey
+        observer.options.queryKey = previousOptions?.queryKey
       }
 
-      updateQuery()
+      const didUpdateQuery = updateQuery()
 
-      // Take no further actions if there are no subscribers
-      if (!subscribable.listeners.length) {
-        return
-      }
+      let needsOptionalFetch
+      let needsUpdateResult
+      let needsUpdateStaleTimeout
+      let needsUpdateRefetchInterval
 
-      // If we subscribed to a new query, optionally fetch and update refetch
-      if (currentQuery !== prevQuery) {
-        optionalFetch()
-        updateTimers()
-        return
+      // If we subscribed to a new query, optionally fetch and update result and timers
+      if (didUpdateQuery) {
+        needsOptionalFetch = true
+        needsUpdateResult = true
+        needsUpdateStaleTimeout = true
+        needsUpdateRefetchInterval = true
       }
 
       // Optionally fetch if the query became enabled
       if (
         observer.options.enabled !== false &&
-        prevOptions?.enabled === false
+        previousOptions.enabled === false
       ) {
-        optionalFetch()
+        needsOptionalFetch = true
+      }
+
+      // Update result if the select function changed
+      if (observer.options.select !== previousOptions.select) {
+        needsUpdateResult = true
       }
 
       // Update stale interval if needed
       if (
-        observer.options.enabled !== prevOptions?.enabled ||
-        observer.options.staleTime !== prevOptions?.staleTime
+        observer.options.enabled !== previousOptions.enabled ||
+        observer.options.staleTime !== previousOptions.staleTime
       ) {
-        updateStaleTimeout()
+        needsUpdateStaleTimeout = true
       }
 
       // Update refetch interval if needed
       if (
-        observer.options.enabled !== prevOptions?.enabled ||
-        observer.options.refetchInterval !== prevOptions?.refetchInterval
+        observer.options.enabled !== previousOptions.enabled ||
+        observer.options.refetchInterval !== previousOptions.refetchInterval
       ) {
-        updateRefetchInterval()
+        needsUpdateRefetchInterval = true
+      }
+
+      // Fetch only if there are subscribers
+      if (observer.hasListeners()) {
+        if (needsOptionalFetch) {
+          optionalFetch()
+        }
+      }
+
+      if (needsUpdateResult) {
+        updateResult()
+      }
+
+      // Update intervals only if there are subscribers
+      if (observer.hasListeners()) {
+        if (needsUpdateStaleTimeout) {
+          updateStaleTimeout()
+        }
+        if (needsUpdateRefetchInterval) {
+          updateRefetchInterval()
+        }
       }
     },
     getCurrentResult: () => {
       return currentResult
+    },
+    getTrackedCurrentResult: () => {
+      return trackedCurrentResult
     },
     getNextResult: resultOptions => {
       return new Promise((resolve, reject) => {
@@ -232,7 +270,7 @@ export function makeQueryObserver<
     getCurrentQuery: () => {
       return currentQuery
     },
-    getNewResult: willFetch => {
+    getNewResult: () => {
       const { state } = currentQuery
       let { isFetching, status } = state
       let isPreviousData = false
@@ -241,7 +279,7 @@ export function makeQueryObserver<
       let dataUpdatedAt = state.dataUpdatedAt
 
       // Optimistically set status to loading if we will start fetching
-      if (willFetch) {
+      if (!observer.hasListeners() && observer.willFetchOnMount()) {
         isFetching = true
         if (!dataUpdatedAt) {
           status = 'loading'
@@ -252,7 +290,8 @@ export function makeQueryObserver<
       if (
         observer.options.keepPreviousData &&
         !state.dataUpdateCount &&
-        previousQueryResult?.isSuccess
+        previousQueryResult?.isSuccess &&
+        status !== 'error'
       ) {
         data = previousQueryResult.data
         dataUpdatedAt = previousQueryResult.dataUpdatedAt
@@ -261,8 +300,12 @@ export function makeQueryObserver<
       }
       // Select data if needed
       else if (observer.options.select && typeof state.data !== 'undefined') {
-        // Use the previous select result if the query data did not change
-        if (currentResult && state.data === currentResultState?.data) {
+        // Use the previous select result if the query data and select function did not change
+        if (
+          currentResult &&
+          state.data === currentResultState?.data &&
+          observer.options.select === previousOptions?.select
+        ) {
           data = currentResult.data
         } else {
           data = observer.options.select(state.data)
@@ -331,32 +374,10 @@ export function makeQueryObserver<
       return observer.fetch(refetchOptions)
     },
     onQueryUpdate: action => {
-      // Store current result and get new result
-      const prevResult = currentResult
-      updateResult()
-
-      // Update timers
-      updateTimers()
-
-      // Do not notify if the nothing has changed
-      if (prevResult === currentResult) {
-        return
+      updateResult(action)
+      if (observer.hasListeners()) {
+        updateTimers()
       }
-
-      // Determine which callbacks to trigger
-      const notifyOptions: NotifyOptions = {}
-
-      if (action.type === 'success') {
-        notifyOptions.onSuccess = true
-      } else if (action.type === 'error') {
-        notifyOptions.onError = true
-      }
-
-      if (shouldNotifyListeners(prevResult, currentResult)) {
-        notifyOptions.listeners = true
-      }
-
-      notify(notifyOptions)
     },
   }
 
@@ -419,12 +440,7 @@ export function makeQueryObserver<
 
     staleTimeoutId = setTimeout(() => {
       if (!currentResult.isStale) {
-        const prevResult = currentResult
         updateResult()
-        notify({
-          listeners: shouldNotifyListeners(prevResult, currentResult),
-          cache: true,
-        })
       }
     }, timeout)
   }
@@ -471,7 +487,7 @@ export function makeQueryObserver<
   }
 
   function shouldNotifyListeners(
-    prevResult: QueryObserverResult,
+    prevResult: QueryObserverResult | undefined,
     result: QueryObserverResult
   ): boolean {
     const {
@@ -483,16 +499,22 @@ export function makeQueryObserver<
       return false
     }
 
+    if (!prevResult) {
+      return true
+    }
+
     if (!notifyOnChangeProps && !notifyOnChangePropsExclusions) {
       return true
     }
 
     const keys = Object.keys(result)
+    const includedProps =
+      notifyOnChangeProps === 'tracked' ? trackedProps : notifyOnChangeProps
 
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i] as keyof QueryObserverResult
       const changed = prevResult[key] !== result[key]
-      const isIncluded = notifyOnChangeProps?.some(x => x === key)
+      const isIncluded = includedProps?.some(x => x === key)
       const isExcluded = notifyOnChangePropsExclusions?.some(x => x === key)
 
       if (changed) {
@@ -500,7 +522,11 @@ export function makeQueryObserver<
           continue
         }
 
-        if (!notifyOnChangeProps || isIncluded) {
+        if (
+          !notifyOnChangeProps ||
+          isIncluded ||
+          (notifyOnChangeProps === 'tracked' && trackedProps.length === 0)
+        ) {
           return true
         }
       }
@@ -509,19 +535,61 @@ export function makeQueryObserver<
     return false
   }
 
-  function updateResult(willFetch?: boolean): void {
-    const result = observer.getNewResult(willFetch)
+  function updateResult(action?: Action<TData, TError>): void {
+    const prevResult = currentResult as
+      | QueryObserverResult<TData, TError>
+      | undefined
+
+    const result = observer.getNewResult()
 
     // Keep reference to the current state on which the current result is based on
     currentResultState = currentQuery.state
 
     // Only update if something has changed
-    if (!shallowEqualObjects(result, currentResult)) {
-      currentResult = result
+    if (!shallowEqualObjects(result, prevResult)) {
+      return
     }
+
+    currentResult = result
+
+    if (observer.options.notifyOnChangeProps === 'tracked') {
+      const addTrackedProps = (prop: keyof QueryObserverResult) => {
+        if (!trackedProps.includes(prop)) {
+          trackedProps.push(prop)
+        }
+      }
+
+      trackedCurrentResult = {} as QueryObserverResult<TData, TError>
+
+      Object.keys(result).forEach(key => {
+        Object.defineProperty(trackedCurrentResult, key, {
+          configurable: false,
+          enumerable: true,
+          get() {
+            addTrackedProps(key as keyof QueryObserverResult)
+            return result[key as keyof QueryObserverResult]
+          },
+        })
+      })
+    }
+
+    // Determine which callbacks to trigger
+    const notifyOptions: NotifyOptions = { cache: true }
+
+    if (action?.type === 'success') {
+      notifyOptions.onSuccess = true
+    } else if (action?.type === 'error') {
+      notifyOptions.onError = true
+    }
+
+    if (shouldNotifyListeners(prevResult, result)) {
+      notifyOptions.listeners = true
+    }
+
+    notify(notifyOptions)
   }
 
-  function updateQuery(): void {
+  function updateQuery(): boolean {
     const prevQuery = currentQuery
 
     const query = client
@@ -532,7 +600,7 @@ export function makeQueryObserver<
       )
 
     if (query === prevQuery) {
-      return
+      return false
     }
 
     previousQueryResult = currentResult
@@ -540,22 +608,12 @@ export function makeQueryObserver<
     initialDataUpdateCount = query.state.dataUpdateCount
     initialErrorUpdateCount = query.state.errorUpdateCount
 
-    const willFetch = prevQuery
-      ? willFetchOptionally()
-      : observer.willFetchOnMount()
-
-    updateResult(willFetch)
-
-    if (!subscribable.hasListeners()) {
-      return
+    if (observer.hasListeners()) {
+      prevQuery?.removeObserver(observer)
+      currentQuery.addObserver(observer)
     }
 
-    prevQuery?.removeObserver(observer)
-    currentQuery.addObserver(observer)
-
-    if (shouldNotifyListeners(previousQueryResult, currentResult)) {
-      notify({ listeners: true })
-    }
+    return true
   }
 
   function notify(notifyOptions: NotifyOptions): void {

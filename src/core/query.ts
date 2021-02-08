@@ -168,7 +168,7 @@ export function makeQuery<
   const cache: QueryCache = config.cache
   let promise: Promise<TData>
   let gcTimeout: number | undefined
-  let retryer: Retryer<unknown>
+  let retryer: Retryer<TData, TError>
   let observers: QueryObserver<any, any, any, any>[] = []
   let defaultOptions: QueryOptions<TQueryFnData, TError, TData> | undefined =
     config.defaultOptions
@@ -377,7 +377,36 @@ export function makeQuery<
 
       // Try to fetch the data
       retryer = makeRetryer({
-        fn: context.fetchFn,
+        fn: context.fetchFn as () => TData,
+        onSuccess: data => {
+          query.setData(data as TData)
+          // Remove query after fetching if cache time is 0
+          if (query.cacheTime === 0) {
+            optionalRemove()
+          }
+        },
+        onError: error => {
+          // Optimistically update state if needed
+          if (!(isCancelledError(error) && error.silent)) {
+            dispatch({
+              type: 'error',
+              error: error as TError,
+            })
+          }
+
+          if (!isCancelledError(error)) {
+            // Notify cache callback
+            if (cache.config?.onError) {
+              cache.config.onError(error, query as Query)
+            }
+            // Log error
+            getLogger().error(error)
+          }
+          // Remove query after fetching if cache time is 0
+          if (query.cacheTime === 0) {
+            optionalRemove()
+          }
+        },
         onFail: () => {
           dispatch({ type: 'failed' })
         },
@@ -392,42 +421,6 @@ export function makeQuery<
       })
 
       promise = retryer.promise
-        .then(data => query.setData(data as TData))
-        .catch(error => {
-          // Set error state if needed
-          if (!(isCancelledError(error) && error.silent)) {
-            dispatch({
-              type: 'error',
-              error,
-            })
-          }
-
-          if (!isCancelledError(error)) {
-            // Notify cache callback
-            if (cache?.config?.onError) {
-              cache.config.onError(error, query as Query)
-            }
-
-            // Log error
-            getLogger().error(error)
-          }
-
-          // Remove query after fetching if cache time is 0
-          if (query.cacheTime === 0) {
-            optionalRemove()
-          }
-
-          // Propagate error
-          throw error
-        })
-        .then(data => {
-          // Remove query after fetching if cache time is 0
-          if (query.cacheTime === 0) {
-            optionalRemove()
-          }
-
-          return data
-        })
 
       return promise
     },

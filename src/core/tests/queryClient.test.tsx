@@ -78,6 +78,7 @@ describe('queryClient', () => {
       const observer = makeQueryObserver(queryClient, {
         queryKey: [key],
         retry: false,
+        enabled: false,
       })
       const { status } = await observer.refetch()
       expect(status).toBe('error')
@@ -152,6 +153,25 @@ describe('queryClient', () => {
       expect(queryCache.find({ queryKey: key })!.state.data).toEqual(
         'new data + test data'
       )
+    })
+  })
+
+  describe('getQueryData', () => {
+    test('should return the query data if the query is found', () => {
+      const key = queryKey()
+      queryClient.setQueryData([key, 'id'], 'bar')
+      expect(queryClient.getQueryData([key, 'id'])).toBe('bar')
+    })
+
+    test('should return undefined if the query is not found', () => {
+      const key = queryKey()
+      expect(queryClient.getQueryData(key)).toBeUndefined()
+    })
+
+    test('should match exact by default', () => {
+      const key = queryKey()
+      queryClient.setQueryData([key, 'id'], 'bar')
+      expect(queryClient.getQueryData([key])).toBeUndefined()
     })
   })
 

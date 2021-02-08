@@ -54,6 +54,24 @@ describe('queryObserver', () => {
     expect(results[2]).toMatchObject({ data: 2, status: 'success' })
   })
 
+  test('should notify when the query has updated before subscribing', async () => {
+    const key = queryKey()
+    const results: QueryObserverResult[] = []
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn: () => 1,
+      staleTime: Infinity,
+    })
+    queryClient.setQueryData(key, 2)
+    const unsubscribe = observer.subscribe(result => {
+      results.push(result)
+    })
+    await sleep(1)
+    unsubscribe()
+    expect(results.length).toBe(1)
+    expect(results[0]).toMatchObject({ data: 2, status: 'success' })
+  })
+
   test('should be able to fetch with a selector', async () => {
     const key = queryKey()
     const observer = makeQueryObserver(queryClient, {
@@ -115,6 +133,71 @@ describe('queryObserver', () => {
     expect(count).toBe(2)
     expect(observerResult1.data).toMatchObject({ myCount: 0 })
     expect(observerResult2.data).toMatchObject({ myCount: 1 })
+  })
+
+  test('should run the selector again if the selector changed', async () => {
+    const key = queryKey()
+    let count = 0
+    const results: QueryObserverResult[] = []
+    const queryFn = () => ({ count: 1 })
+    const select1 = (data: ReturnType<typeof queryFn>) => {
+      count++
+      return { myCount: data.count }
+    }
+    const select2 = (_data: ReturnType<typeof queryFn>) => {
+      count++
+      return { myCount: 99 }
+    }
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn,
+      select: select1,
+    })
+    const unsubscribe = observer.subscribe(result => {
+      results.push(result)
+    })
+    await sleep(1)
+    observer.setOptions({
+      queryKey: key,
+      queryFn,
+      select: select2,
+    })
+    await sleep(1)
+    unsubscribe()
+    expect(count).toBe(2)
+    expect(results.length).toBe(2)
+    expect(results[0]).toMatchObject({ data: { myCount: 1 } })
+    expect(results[1]).toMatchObject({ data: { myCount: 99 } })
+  })
+
+  test('should not run the selector again if the data and selector did not change', async () => {
+    const key = queryKey()
+    let count = 0
+    const results: QueryObserverResult[] = []
+    const queryFn = () => ({ count: 1 })
+    const select = (data: ReturnType<typeof queryFn>) => {
+      count++
+      return { myCount: data.count }
+    }
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn,
+      select,
+    })
+    const unsubscribe = observer.subscribe(result => {
+      results.push(result)
+    })
+    await sleep(1)
+    observer.setOptions({
+      queryKey: key,
+      queryFn,
+      select,
+    })
+    await sleep(1)
+    unsubscribe()
+    expect(count).toBe(1)
+    expect(results.length).toBe(1)
+    expect(results[0]).toMatchObject({ data: { myCount: 1 } })
   })
 
   test('should not run the selector again if the data did not change', async () => {

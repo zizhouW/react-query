@@ -45,7 +45,7 @@ export type InfiniteQueryObserver<
   fetch(
     fetchOptions?: ObserverFetchOptions
   ): Promise<InfiniteQueryObserverResult<TData, TError>>
-  getNewResult(willFetch?: boolean): InfiniteQueryObserverResult<TData, TError>
+  getNewResult(): InfiniteQueryObserverResult<TData, TError>
 }
 
 export function makeInfiniteQueryObserver<
@@ -111,9 +111,9 @@ export function makeInfiniteQueryObserver<
         InfiniteQueryObserverResult<TData, TError>
       >
     },
-    getNewResult: willFetch => {
+    getNewResult: () => {
       const { state } = queryObserver.getCurrentQuery()
-      const result = queryObserver.getNewResult(willFetch)
+      const result = queryObserver.getNewResult()
       return {
         ...result,
         fetchNextPage: infiniteQueryObserver.fetchNextPage,

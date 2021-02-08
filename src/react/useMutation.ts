@@ -9,6 +9,7 @@ import {
 import { useQueryClient } from './QueryClientProvider'
 import { UseMutateFunction, UseMutationResult } from './types'
 import { MutationObserverResult, MutationOptions } from '../core/types'
+import { useIsMounted } from './useIsMounted'
 
 // HOOK
 
@@ -20,6 +21,7 @@ export function useMutation<
 >(
   options: MutationOptions<TData, TError, TVariables, TContext>
 ): UseMutationResult<TData, TError, TVariables, TContext> {
+  const isMounted = useIsMounted()
   const queryClient = useQueryClient()
 
   // Create mutation observer
@@ -47,14 +49,13 @@ export function useMutation<
           (
             result: MutationObserverResult<TData, TError, TVariables, TContext>
           ) => {
-            // Check if the component is still mounted
-            if (observer.hasListeners()) {
+            if (isMounted()) {
               setCurrentResult(result)
             }
           }
         )
       ),
-    [observer]
+    [observer, isMounted]
   )
 
   const mutate = React.useCallback<
