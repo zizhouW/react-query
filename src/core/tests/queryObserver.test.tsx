@@ -57,7 +57,7 @@ describe('queryObserver', () => {
   test('should notify when the query has updated before subscribing', async () => {
     const key = queryKey()
     const results: QueryObserverResult[] = []
-    const observer = new QueryObserver(queryClient, {
+    const observer = makeQueryObserver(queryClient, {
       queryKey: key,
       queryFn: () => 1,
       staleTime: Infinity,
@@ -148,7 +148,7 @@ describe('queryObserver', () => {
       count++
       return { myCount: 99 }
     }
-    const observer = new QueryObserver(queryClient, {
+    const observer = makeQueryObserver(queryClient, {
       queryKey: key,
       queryFn,
       select: select1,
@@ -179,7 +179,7 @@ describe('queryObserver', () => {
       count++
       return { myCount: data.count }
     }
-    const observer = new QueryObserver(queryClient, {
+    const observer = makeQueryObserver(queryClient, {
       queryKey: key,
       queryFn,
       select,

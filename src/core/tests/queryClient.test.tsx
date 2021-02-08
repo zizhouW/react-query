@@ -160,18 +160,18 @@ describe('queryClient', () => {
     test('should return the query data if the query is found', () => {
       const key = queryKey()
       queryClient.setQueryData([key, 'id'], 'bar')
-      expect(queryClient.getQueryData([key, 'id'])).toBe('bar')
+      expect(queryClient.getQueryData({ queryKey: [key, 'id'] })).toBe('bar')
     })
 
     test('should return undefined if the query is not found', () => {
       const key = queryKey()
-      expect(queryClient.getQueryData(key)).toBeUndefined()
+      expect(queryClient.getQueryData({ queryKey: key })).toBeUndefined()
     })
 
     test('should match exact by default', () => {
       const key = queryKey()
       queryClient.setQueryData([key, 'id'], 'bar')
-      expect(queryClient.getQueryData([key])).toBeUndefined()
+      expect(queryClient.getQueryData({ queryKey: [key] })).toBeUndefined()
     })
   })
 

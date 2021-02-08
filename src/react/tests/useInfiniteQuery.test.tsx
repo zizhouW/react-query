@@ -714,18 +714,16 @@ describe('useInfiniteQuery', () => {
     let fetches = 0
 
     function List() {
-      const state = useInfiniteQuery(
-        key,
-        async ({ pageParam }) => {
+      const state = useInfiniteQuery({
+        queryKey: key,
+        queryFn: async ({ pageParam }) => {
           fetches++
           await sleep(50)
           return Number(pageParam)
         },
-        {
-          initialData: { pages: [1, 2, 3, 4], pageParams: [1, 2, 3, 4] },
-          getNextPageParam: lastPage => lastPage + 1,
-        }
-      )
+        initialData: { pages: [1, 2, 3, 4], pageParams: [1, 2, 3, 4] },
+        getNextPageParam: lastPage => lastPage + 1,
+      })
 
       states.push(state)
 
@@ -750,7 +748,7 @@ describe('useInfiniteQuery', () => {
 
     expect(states.length).toBe(1)
     expect(fetches).toBe(2)
-    expect(queryClient.getQueryState(key)).toMatchObject({
+    expect(queryClient.getQueryState({ queryKey: key })).toMatchObject({
       status: 'error',
       error: expect.any(CancelledError),
     })
@@ -911,17 +909,15 @@ describe('useInfiniteQuery', () => {
     const states: UseInfiniteQueryResult<number>[] = []
 
     function Page() {
-      const state = useInfiniteQuery(
-        key,
-        async ({ pageParam }) => {
+      const state = useInfiniteQuery({
+        queryKey: key,
+        queryFn: async ({ pageParam }) => {
           await sleep(10)
           return pageParam
         },
-        {
-          initialData: { pages: [1], pageParams: [1] },
-          getNextPageParam: lastPage => lastPage + 1,
-        }
-      )
+        initialData: { pages: [1], pageParams: [1] },
+        getNextPageParam: lastPage => lastPage + 1,
+      })
 
       states.push(state)
 

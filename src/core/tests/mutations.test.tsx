@@ -27,7 +27,7 @@ describe('mutations', () => {
   test('mutate should accept null values', async () => {
     let variables
 
-    const mutation = new MutationObserver(queryClient, {
+    const mutation = makeMutationObserver(queryClient, {
       mutationFn: async (vars: unknown) => {
         variables = vars
         return vars
