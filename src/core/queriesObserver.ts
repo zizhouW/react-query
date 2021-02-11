@@ -1,27 +1,31 @@
 import { difference, getQueryKeyHashFn, replaceAt } from './utils'
 import { notifyManager } from './notifyManager'
-import type { QueryObserverOptions, QueryObserverResult } from './types'
+import type {
+  QueryGenerics,
+  QueryObserverOptions,
+  QueryObserverResult,
+} from './types'
 import type { QueryClient } from './queryClient'
 import { createQueryObserver, QueryObserver } from './queryObserver'
 import { Subscribable } from './subscribable'
 
-type QueriesObserverListener = (result: QueryObserverResult[]) => void
+type QueriesObserverListener = (result: QueryObserverResult<any>[]) => void
 
-export type QueriesObserver = {
+export type QueriesObserver<TGenerics extends QueryGenerics> = {
   subscribe: Subscribable<QueriesObserverListener>['subscribe']
   hasListeners: Subscribable<QueriesObserverListener>['hasListeners']
   destroy(): void
-  setQueries(queries: QueryObserverOptions[]): void
-  getCurrentResult(): QueryObserverResult[]
+  setQueries(queries: QueryObserverOptions<TGenerics>[]): void
+  getCurrentResult(): QueryObserverResult<TGenerics>[]
 }
 
-export function createQueriesObserver(
+export function createQueriesObserver<TGenerics extends QueryGenerics>(
   client: QueryClient,
-  initialQueries?: QueryObserverOptions[]
-): QueriesObserver {
-  let queries: QueryObserverOptions[] = initialQueries || []
-  let result: QueryObserverResult[] = []
-  let observers: QueryObserver[] = []
+  initialQueries?: QueryObserverOptions<TGenerics>[]
+): QueriesObserver<TGenerics> {
+  let queries: QueryObserverOptions<TGenerics>[] = initialQueries || []
+  let result: QueryObserverResult<TGenerics>[] = []
+  let observers: QueryObserver<TGenerics>[] = []
 
   const subscribable = Subscribable<QueriesObserverListener>({
     onSubscribe() {
@@ -44,7 +48,7 @@ export function createQueriesObserver(
   // Subscribe to queries
   updateObservers()
 
-  const queriesObserver: QueriesObserver = {
+  const queriesObserver: QueriesObserver<TGenerics> = {
     subscribe: subscribable.subscribe,
     hasListeners: subscribable.hasListeners,
     destroy(): void {
@@ -53,11 +57,11 @@ export function createQueriesObserver(
         observer.destroy()
       })
     },
-    setQueries(newQueries: QueryObserverOptions[]): void {
+    setQueries(newQueries: QueryObserverOptions<any>[]): void {
       queries = newQueries
       updateObservers()
     },
-    getCurrentResult(): QueryObserverResult[] {
+    getCurrentResult(): QueryObserverResult<TGenerics>[] {
       return result
     },
   }
@@ -69,7 +73,7 @@ export function createQueriesObserver(
 
     const prevObservers = observers
     const newObservers = queries.map((options, i) => {
-      let observer: QueryObserver | undefined = prevObservers[i]
+      let observer: QueryObserver<TGenerics> | undefined = prevObservers[i]
 
       const defaultedOptions = client.defaultQueryObserverOptions(options)
       const hashFn = getQueryKeyHashFn(defaultedOptions)
@@ -117,7 +121,10 @@ export function createQueriesObserver(
     notify()
   }
 
-  function onUpdate(observer: QueryObserver, res: QueryObserverResult): void {
+  function onUpdate(
+    observer: QueryObserver<TGenerics>,
+    res: QueryObserverResult<TGenerics>
+  ): void {
     const index = observers.indexOf(observer)
     if (index !== -1) {
       result = replaceAt(result, index, res)

@@ -1,8 +1,10 @@
 import { Subscribable } from './subscribable'
 import { isServer, noop } from './utils'
 
+type OnlineListener = () => void
+
 export type OnlineManager = {
-  subscribe: Subscribable
+  subscribe: Subscribable<OnlineListener>
   isOnline(): boolean
   setOnline(val?: boolean): void
 }

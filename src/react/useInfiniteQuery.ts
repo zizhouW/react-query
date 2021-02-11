@@ -1,23 +1,21 @@
-import { createQueryObserver } from '../core'
-import { createInfiniteQueryObserver } from '../core/infiniteQueryObserver'
 import {
-  UseBaseQueryOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
-} from './types'
+  InfiniteQueryGenerics,
+  InfiniteQueryObserverResult,
+  QueryObserver,
+  QueryObserverOptions,
+} from '../core'
+import { createInfiniteQueryObserver } from '../core/infiniteQueryObserver'
 import { useBaseQuery } from './useBaseQuery'
 
 // HOOK
 
-export function useInfiniteQuery<
-  TQueryFnData = unknown,
-  TError = unknown,
-  TData = TQueryFnData
->(
-  options: UseInfiniteQueryOptions<TQueryFnData, TError, TData>
-): UseInfiniteQueryResult<TData, TError> {
-  return useBaseQuery(
-    options as UseBaseQueryOptions,
-    createInfiniteQueryObserver as typeof createQueryObserver
-  ) as UseInfiniteQueryResult<TData, TError>
+export function useInfiniteQuery<TGenerics extends InfiniteQueryGenerics<any>>(
+  options: QueryObserverOptions<TGenerics>
+) {
+  return useBaseQuery<
+    TGenerics,
+    QueryObserverOptions<TGenerics>,
+    QueryObserver<TGenerics>,
+    InfiniteQueryObserverResult<TGenerics>
+  >(options, createInfiniteQueryObserver)
 }

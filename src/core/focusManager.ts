@@ -1,8 +1,10 @@
 import { Subscribable } from './subscribable'
 import { isServer, noop } from './utils'
 
+type FocusListener = () => void
+
 export type FocusManager = {
-  subscribe: Subscribable['subscribe']
+  subscribe: Subscribable<FocusListener>['subscribe']
   isFocused(): boolean
 }
 

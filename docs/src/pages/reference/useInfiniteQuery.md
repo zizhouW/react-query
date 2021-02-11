@@ -23,7 +23,7 @@ const {
 
 The options for `useInfiniteQuery` are identical to the [`useQuery` hook](/reference/useQuery) with the addition of the following:
 
-- `queryFn: (context: QueryFunctionContext) => Promisable<TGenerics['Data']>`
+- `queryFn: (context: QueryFunctionContext) => Promise<TGenerics['Data']>`
   - **Required, but only if no default query function has been defined**
   - The function that the query will use to request data.
   - Receives a `QueryFunctionContext` object with the following variables:

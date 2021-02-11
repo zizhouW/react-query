@@ -1,15 +1,21 @@
-import { createQueryObserver } from '../core'
-import { UseQueryOptions, UseQueryResult } from './types'
+import {
+  createQueryObserver,
+  QueryGenerics,
+  QueryObserver,
+  QueryObserverOptions,
+  QueryObserverResult,
+} from '../core'
 import { useBaseQuery } from './useBaseQuery'
 
 // HOOK
 
-export function useQuery<
-  TQueryFnData = unknown,
-  TError = unknown,
-  TData = TQueryFnData
->(
-  options: UseQueryOptions<TQueryFnData, TError, TData>
-): UseQueryResult<TData, TError> {
-  return useBaseQuery(options, createQueryObserver)
+export function useQuery<TGenerics extends QueryGenerics>(
+  options: QueryObserverOptions<TGenerics>
+) {
+  return useBaseQuery<
+    TGenerics,
+    QueryObserverOptions<TGenerics>,
+    QueryObserver<TGenerics>,
+    QueryObserverResult<TGenerics>
+  >(options, createQueryObserver)
 }

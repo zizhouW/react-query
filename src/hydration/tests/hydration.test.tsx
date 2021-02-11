@@ -5,7 +5,7 @@ import { dehydrate, hydrate } from '../hydration'
 async function fetchData<TData>(
   value: TData,
   ms?: number
-): Promisable<TGenerics['Data']> {
+): Promise<TGenerics['Data']> {
   await sleep(ms || 0)
   return value
 }

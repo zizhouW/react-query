@@ -26,13 +26,13 @@ export interface HydrateOptions {
 
 interface DehydratedMutation {
   mutationKey?: MutationKey
-  state: MutationState
+  state: MutationState<any>
 }
 
 interface DehydratedQuery {
   queryHash: string
   queryKey: QueryKey
-  state: QueryState
+  state: QueryState<any>
 }
 
 export interface DehydratedState {
@@ -40,13 +40,15 @@ export interface DehydratedState {
   queries: DehydratedQuery[]
 }
 
-export type ShouldDehydrateQueryFunction = (query: Query) => boolean
+export type ShouldDehydrateQueryFunction = (query: Query<any>) => boolean
 
-export type ShouldDehydrateMutationFunction = (mutation: Mutation) => boolean
+export type ShouldDehydrateMutationFunction = (
+  mutation: Mutation<any>
+) => boolean
 
 // FUNCTIONS
 
-function dehydrateMutation(mutation: Mutation): DehydratedMutation {
+function dehydrateMutation(mutation: Mutation<any>): DehydratedMutation {
   return {
     mutationKey: mutation.options.mutationKey,
     state: mutation.state,
@@ -57,7 +59,7 @@ function dehydrateMutation(mutation: Mutation): DehydratedMutation {
 // consuming the de/rehydrated data, typically with useQuery on the client.
 // Sometimes it might make sense to prefetch data on the server and include
 // in the html-payload, but not consume it on the initial render.
-function dehydrateQuery(query: Query): DehydratedQuery {
+function dehydrateQuery(query: Query<any>): DehydratedQuery {
   return {
     state: query.state,
     queryKey: query.queryKey,
@@ -65,11 +67,11 @@ function dehydrateQuery(query: Query): DehydratedQuery {
   }
 }
 
-function defaultShouldDehydrateMutation(mutation: Mutation) {
+function defaultShouldDehydrateMutation(mutation: Mutation<any>) {
   return mutation.state.isPaused
 }
 
-function defaultShouldDehydrateQuery(query: Query) {
+function defaultShouldDehydrateQuery(query: Query<any>) {
   return query.state.status === 'success'
 }
 

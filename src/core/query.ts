@@ -1,4 +1,3 @@
-import { Promisable } from 'type-fest'
 import {
   Updater,
   ensureArray,
@@ -18,18 +17,26 @@ import {
   isCancelledError,
   Retryer,
 } from './retryer'
+import {
+  QueryGenerics,
+  InitialDataFunction,
+  QueryFunctionContext,
+  QueryOptions,
+  QueryStatus,
+} from './types'
 
 // TYPES
 
-interface QueryConfig<TGenerics> {
+interface QueryConfig<TGenerics extends QueryGenerics> {
   cache: QueryCache
   queryHash: string
-  options?: QueryOptions<TGenerics>
+  queryKey: TGenerics['QueryKey']
+  options: QueryOptions<TGenerics>
   defaultOptions?: QueryOptions<TGenerics>
   state?: QueryState<TGenerics>
 }
 
-export interface QueryState<TGenerics extends DefaultQueryGenerics> {
+export interface QueryState<TGenerics extends QueryGenerics> {
   data?: TGenerics['Data']
   dataUpdateCount: number
   dataUpdatedAt: number
@@ -44,14 +51,15 @@ export interface QueryState<TGenerics extends DefaultQueryGenerics> {
   status: QueryStatus
 }
 
-export interface FetchContext<TGenerics> {
+export interface FetchContext<TGenerics extends QueryGenerics> {
   fetchFn: () => unknown | Promise<unknown>
   fetchOptions?: FetchOptions
+  queryKey: TGenerics['QueryKey']
   options: QueryOptions<TGenerics>
   state: QueryState<TGenerics>
 }
 
-export interface QueryBehavior<TGenerics extends DefaultQueryGenerics> {
+export interface QueryBehavior<TGenerics extends QueryGenerics> {
   onFetch: (context: FetchContext<TGenerics>) => void
 }
 
@@ -96,12 +104,12 @@ interface ContinueAction {
   type: 'continue'
 }
 
-interface SetStateAction<TGenerics> {
+interface SetStateAction<TGenerics extends QueryGenerics> {
   type: 'setState'
   state: QueryState<TGenerics>
 }
 
-export type Action<TGenerics extends DefaultQueryGenerics> =
+export type Action<TGenerics extends QueryGenerics> =
   | ContinueAction
   | ErrorAction<TGenerics['Error']>
   | FailedAction
@@ -111,8 +119,9 @@ export type Action<TGenerics extends DefaultQueryGenerics> =
   | SetStateAction<TGenerics>
   | SuccessAction<TGenerics['Data']>
 
-export type Query<TGenerics extends DefaultQueryGenerics> = {
+export type Query<TGenerics extends QueryGenerics> = {
   queryHash: string
+  queryKey: TGenerics['QueryKey']
   options: QueryOptions<TGenerics>
   initialState: QueryState<TGenerics>
   state: QueryState<TGenerics>
@@ -138,25 +147,29 @@ export type Query<TGenerics extends DefaultQueryGenerics> = {
   fetch(
     options?: QueryOptions<TGenerics>,
     fetchOptions?: FetchOptions
-  ): Promisable<TGenerics['Data']>
+  ): Promise<TGenerics['Data']>
 }
 
-export function createQuery<TGenerics extends DefaultQueryGenerics>(
+export function createQuery<TGenerics extends QueryGenerics>(
   config: QueryConfig<TGenerics>
 ) {
   const cache: QueryCache = config.cache
   let promise: Promise<TGenerics['Data']>
   let gcTimeout: number | undefined
-  let retryer: Retryer<unknown>
+  let retryer: Retryer<TGenerics>
   let observers: QueryObserver<TGenerics>[] = []
   let defaultOptions: QueryOptions<TGenerics> | undefined =
     config.defaultOptions
 
-  const options = { ...defaultOptions, ...config.options }
+  const options: QueryOptions<TGenerics> = {
+    ...defaultOptions,
+    ...config.options,
+  }
   const initialState = config.state || getDefaultState(options)
 
   const query: Query<TGenerics> = {
     queryHash: config.queryHash,
+    queryKey: config.queryKey,
     options,
     initialState,
     state: initialState,
@@ -321,7 +334,7 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
       // Create query function context
       const arrayQueryKey = ensureArray(query.queryKey)
-      const queryFnContext: QueryFunctionContext = {
+      const queryFnContext: QueryFunctionContext<TGenerics> = {
         queryKey: arrayQueryKey,
         pageParam: undefined,
       }
@@ -355,9 +368,9 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
       // Try to fetch the data
       retryer = createRetryer({
-        fn: context.fetchFn as () => TData,
+        fn: context.fetchFn as () => TGenerics['Data'],
         onSuccess: data => {
-          query.setData(data as TData)
+          query.setData(data as TGenerics['Data'])
           // Remove query after fetching if cache time is 0
           if (query.cacheTime === 0) {
             optionalRemove()
@@ -368,14 +381,14 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
           if (!(isCancelledError(error) && error.silent)) {
             dispatch({
               type: 'error',
-              error: error as TError,
+              error: error as TGenerics['Error'],
             })
           }
 
           if (!isCancelledError(error)) {
             // Notify cache callback
             if (cache.config?.onError) {
-              cache.config.onError(error, query as Query)
+              cache.config.onError(error, query)
             }
             // Log error
             getLogger().error(error)
@@ -409,8 +422,8 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
   return query
 
-  function setOptions(newOptions?: QueryOptions<TGenerics>): void {
-    query.options = { ...defaultOptions, ...newOptions }
+  function setOptions(newOptions?: QueryOptions<any>): void {
+    query.options = { ...newOptions }
 
     // Default to 5 minutes if not cache time is set
     query.cacheTime = Math.max(
@@ -453,22 +466,22 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
   }
 
   function getDefaultState(
-    defaultStateOptions: QueryOptions<TGenerics>
+    defaultStateOptions: QueryOptions<TGenerics> | undefined
   ): QueryState<TGenerics> {
     const data =
-      typeof defaultStateOptions.initialData === 'function'
-        ? (defaultStateOptions.initialData as InitialDataFunction<TData>)()
-        : defaultStateOptions.initialData
+      typeof defaultStateOptions?.initialData === 'function'
+        ? (defaultStateOptions?.initialData as InitialDataFunction<TGenerics>)()
+        : defaultStateOptions?.initialData
 
     const hasInitialData =
-      typeof defaultStateOptions.initialData !== 'undefined'
+      typeof defaultStateOptions?.initialData !== 'undefined'
 
     const initialDataUpdatedAt = hasInitialData
-      ? typeof defaultStateOptions.initialDataUpdatedAt === 'function'
-        ? (defaultStateOptions.initialDataUpdatedAt as () =>
+      ? typeof defaultStateOptions?.initialDataUpdatedAt === 'function'
+        ? (defaultStateOptions?.initialDataUpdatedAt as () =>
             | number
             | undefined)()
-        : defaultStateOptions.initialDataUpdatedAt
+        : defaultStateOptions?.initialDataUpdatedAt
       : 0
 
     const hasData = typeof data !== 'undefined'
@@ -557,7 +570,7 @@ export function createQuery<TGenerics extends DefaultQueryGenerics>(
 
         return {
           ...state,
-          error: error as TError,
+          error: error as TGenerics['Error'],
           errorUpdateCount: state.errorUpdateCount + 1,
           errorUpdatedAt: Date.now(),
           fetchFailureCount: state.fetchFailureCount + 1,

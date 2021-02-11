@@ -4,14 +4,19 @@ import { functionalUpdate, sleep } from './utils'
 
 // TYPES
 
-interface RetryerConfig<TGenerics extends DefaultQueryGenerics> {
-  onError?: (error: TError) => void
-  onSuccess?: (data: TData) => void
-  fn: () => TData | Promisable<TGenerics['Data']>
-  onFail?: (failureCount: number, error: TError) => void
+interface RetryerGenerics {
+  Data?: unknown
+  Error?: unknown
+}
+
+interface RetryerConfig<TGenerics extends RetryerGenerics> {
+  onError?: (error: TGenerics['Error']) => void
+  onSuccess?: (data: TGenerics['Data']) => void
+  fn: () => TGenerics['Data'] | Promise<TGenerics['Data']>
+  onFail?: (failureCount: number, error: TGenerics['Error']) => void
   onPause?: () => void
   onContinue?: () => void
-  retry?: RetryValue<TError>
+  retry?: RetryValue<TGenerics['Error']>
   retryDelay?: RetryDelayValue
 }
 
@@ -56,27 +61,27 @@ export function isCancelledError(value: any): value is CancelledError {
   return value instanceof CancelledError
 }
 
-export type Retryer<TData> = {
+export type Retryer<TGenerics extends RetryerGenerics> = {
   cancel(cancelOptions?: CancelOptions): void
   cancelRetry(): void
   failureCount: number
   isPaused: boolean
   isResolved: boolean
   isTransportCancelable: boolean
-  promise: Promisable<TGenerics['Data']>
+  promise: Promise<TGenerics['Data']>
   proceed(): void
 }
 
-export function createRetryer<TGenerics extends DefaultQueryGenerics>(
-  config: RetryerConfig<TData, TError>
+export function createRetryer<TGenerics extends RetryerGenerics>(
+  config: RetryerConfig<TGenerics>
 ) {
   let isRetryCancelled = false
   let cancelFn: ((options?: CancelOptions) => void) | undefined
   let continueFn: ((value?: unknown) => void) | undefined
-  let promiseResolve: (data: TData) => void
-  let promiseReject: (error: TError) => void
+  let promiseResolve: (data: TGenerics['Data']) => void
+  let promiseReject: (error: TGenerics['Error']) => void
 
-  const retryer: Retryer<TData> = {
+  const retryer: Retryer<TGenerics> = {
     cancel: cancelOptions => cancelFn?.(cancelOptions),
     cancelRetry: () => {
       isRetryCancelled = true
@@ -85,7 +90,7 @@ export function createRetryer<TGenerics extends DefaultQueryGenerics>(
     isPaused: false,
     isResolved: false,
     isTransportCancelable: false,
-    promise: new Promisable<TGenerics['Data']>((outerResolve, outerReject) => {
+    promise: new Promise<TGenerics['Data']>((outerResolve, outerReject) => {
       promiseResolve = outerResolve
       promiseReject = outerReject
     }),

@@ -1,15 +1,17 @@
 import type {
   FetchNextPageOptions,
   FetchPreviousPageOptions,
-  InfiniteQueryResult,
-  InfiniteQueryObserverOptions,
+  QueryObserverOptions,
   InfiniteQueryObserverResult,
+  InfiniteQueryGenerics,
+  QueryGenerics,
 } from './types'
 import type { QueryClient } from './queryClient'
 import {
   ObserverFetchOptions,
   createQueryObserver,
   QueryObserverListener,
+  QueryObserver,
 } from './queryObserver'
 import {
   hasNextPage,
@@ -17,69 +19,51 @@ import {
   infiniteQueryBehavior,
 } from './infiniteQueryBehavior'
 import { Subscribable } from './subscribable'
+import { Merge } from 'type-fest'
 
 export type InfiniteQueryObserver<
-  TQueryFnData = unknown,
-  TError = unknown,
-  TData = TQueryFnData,
-  TQueryData = TQueryFnData
-> = {
-  subscribe: Subscribable<
-    QueryObserverListener<InfiniteQueryResult<TData>, TError>
-  >['subscribe']
-  getCurrentResult(): InfiniteQueryObserverResult<TData, TError>
-  setOptions(
-    options?: InfiniteQueryObserverOptions<
-      TQueryFnData,
-      TError,
-      TData,
-      TQueryData
-    >
-  ): void
-  fetchNextPage(
-    options?: FetchNextPageOptions
-  ): Promise<InfiniteQueryObserverResult<TData, TError>>
-  fetchPreviousPage(
-    options?: FetchPreviousPageOptions
-  ): Promise<InfiniteQueryObserverResult<TData, TError>>
-  fetch(
-    fetchOptions?: ObserverFetchOptions
-  ): Promise<InfiniteQueryObserverResult<TData, TError>>
-  getNewResult(): InfiniteQueryObserverResult<TData, TError>
-}
+  TGenericsIn extends QueryGenerics,
+  TGenerics extends InfiniteQueryGenerics<TGenericsIn> = InfiniteQueryGenerics<
+    TGenericsIn
+  >
+> = Merge<
+  QueryObserver<TGenericsIn>,
+  {
+    subscribe: Subscribable<QueryObserverListener<TGenerics>>['subscribe']
+    getCurrentResult(): InfiniteQueryObserverResult<TGenerics>
+    setOptions(options?: QueryObserverOptions<TGenerics>): void
+    fetchNextPage(
+      options?: FetchNextPageOptions
+    ): Promise<InfiniteQueryObserverResult<TGenerics>>
+    fetchPreviousPage(
+      options?: FetchPreviousPageOptions
+    ): Promise<InfiniteQueryObserverResult<TGenerics>>
+    fetch(
+      fetchOptions?: ObserverFetchOptions
+    ): Promise<InfiniteQueryObserverResult<TGenerics>>
+    getNewResult(): InfiniteQueryObserverResult<TGenerics>
+  }
+>
 
 export function createInfiniteQueryObserver<
-  TQueryFnData = unknown,
-  TError = unknown,
-  TData = TQueryFnData,
-  TQueryData = TQueryFnData
+  TGenerics extends InfiniteQueryGenerics<any>
 >(
   client: QueryClient,
-  options: InfiniteQueryObserverOptions<TQueryFnData, TError, TData, TQueryData>
-) {
-  const queryObserver = createQueryObserver<
-    TQueryFnData,
-    TError,
-    InfiniteQueryResult<TData>,
-    InfiniteQueryResult<TQueryData>
-  >(client, options)
+  observerOptions: QueryObserverOptions<TGenerics>
+): InfiniteQueryObserver<TGenerics> {
+  const queryObserver = createQueryObserver<TGenerics>(client, observerOptions)
 
-  const infiniteQueryObserver: InfiniteQueryObserver<
-    TQueryFnData,
-    TError,
-    TData,
-    TQueryData
-  > = {
-    subscribe: listener => queryObserver.subscribe(listener),
+  const infiniteQueryObserver: InfiniteQueryObserver<TGenerics> = {
+    ...queryObserver,
+    // subscribe: listener => queryObserver.subscribe(listener),
     getCurrentResult: (...args) =>
       queryObserver.getCurrentResult(...args) as InfiniteQueryObserverResult<
-        TData,
-        TError
+        TGenerics
       >,
     setOptions: newOptions => {
       queryObserver.setOptions({
         ...newOptions,
-        behavior: infiniteQueryBehavior<TQueryFnData, TError, TData>(),
+        behavior: infiniteQueryBehavior(),
       })
     },
     fetchNextPage: fetchOptions => {
@@ -108,7 +92,7 @@ export function createInfiniteQueryObserver<
     },
     fetch: fetchOptions => {
       return queryObserver.fetch(fetchOptions) as Promise<
-        InfiniteQueryObserverResult<TData, TError>
+        InfiniteQueryObserverResult<TGenerics>
       >
     },
     getNewResult: () => {
@@ -129,7 +113,7 @@ export function createInfiniteQueryObserver<
         isFetchingPreviousPage:
           state.isFetching &&
           state.fetchMeta?.fetchMore?.direction === 'backward',
-      }
+      } as InfiniteQueryObserverResult<TGenerics>
     },
   }
 

@@ -1,16 +1,14 @@
 import type { QueryBehavior } from './query'
 import { isCancelable } from './retryer'
 import type {
-  InfiniteQueryResult,
+  InfiniteQueryGenerics,
   QueryFunctionContext,
   QueryOptions,
 } from './types'
 
 export function infiniteQueryBehavior<
-  TQueryFnData,
-  TError,
-  TData
->(): QueryBehavior<TQueryFnData, TError, InfiniteQueryResult<TData>> {
+  TGenerics extends InfiniteQueryGenerics<any>
+>(): QueryBehavior<TGenerics> {
   return {
     onFetch: context => {
       context.fetchFn = () => {
@@ -42,7 +40,7 @@ export function infiniteQueryBehavior<
             return Promise.resolve(pages)
           }
 
-          const queryFnContext: QueryFunctionContext = {
+          const queryFnContext: QueryFunctionContext<TGenerics> = {
             queryKey: context.queryKey,
             pageParam: param,
           }
@@ -130,14 +128,14 @@ export function infiniteQueryBehavior<
 }
 
 export function getNextPageParam(
-  options: QueryOptions<any, any>,
+  options: QueryOptions<any>,
   pages: unknown[]
 ): unknown | undefined {
   return options.getNextPageParam?.(pages[pages.length - 1], pages)
 }
 
 export function getPreviousPageParam(
-  options: QueryOptions<any, any>,
+  options: QueryOptions<any>,
   pages: unknown[]
 ): unknown | undefined {
   return options.getPreviousPageParam?.(pages[0], pages)
@@ -148,7 +146,7 @@ export function getPreviousPageParam(
  * Returns `undefined` if it cannot be determined.
  */
 export function hasNextPage(
-  options: QueryOptions<any, any>,
+  options: QueryOptions<any>,
   pages?: unknown
 ): boolean | undefined {
   if (options.getNextPageParam && Array.isArray(pages)) {
@@ -166,7 +164,7 @@ export function hasNextPage(
  * Returns `undefined` if it cannot be determined.
  */
 export function hasPreviousPage(
-  options: QueryOptions<any, any>,
+  options: QueryOptions<any>,
   pages?: unknown
 ): boolean | undefined {
   if (options.getPreviousPageParam && Array.isArray(pages)) {

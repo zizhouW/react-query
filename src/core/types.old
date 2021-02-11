@@ -1,89 +1,63 @@
-import { Merge } from 'type-fest'
+// import { Merge, Promise } from 'type-fest'
 import type { MutationState } from './mutation'
 import type { QueryBehavior } from './query'
 import type { RetryValue, RetryDelayValue } from './retryer'
+import { QueryGenerics } from './types'
 import type { QueryFilters } from './utils'
-
-export type _Prettify<T> = T extends infer U ? { [K in keyof U]: U[K] } : never
 
 export type QueryKey = string | unknown[]
 
-export interface QueryGenerics {
-  Data?: unknown
-  Error?: unknown
-  QueryKey?: QueryKey
-  SelectedData?: unknown
-  PageParam?: unknown
-  NextPageParam?: unknown
-  PreviousPageParam?: unknown
-}
+export type QueryFunction<T = unknown> = (
+  context: QueryFunctionContext<any>
+) => T | Promise<T>
 
-export type InfiniteQueryGenerics<TGenerics extends QueryGenerics> = Merge<
-  QueryGenerics,
-  {
-    Data?: {
-      pages: TGenerics['Data'][]
-      pageParams: TGenerics['PageParam'][]
-    }
-  }
->
-
-export interface MutationGenerics {
-  Data: unknown
-  Error: unknown
-  Variables: unknown
-  Context: unknown
-}
-
-export type QueryKeyHashFunction = (queryKey?: QueryKey) => string
-
-export type QueryFunction<TGenerics extends QueryGenerics> = (
-  context: QueryFunctionContext<TGenerics>
-) => Promise<TGenerics['Data']>
-
-export interface QueryFunctionContext<TGenerics extends QueryGenerics> {
-  queryKey: TGenerics['QueryKey']
-  pageParam?: TGenerics['PageParam']
+export interface QueryFunctionContext<
+  TQueryKey extends QueryKey = QueryKey,
+  TPageParam = any
+> {
+  queryKey: TQueryKey
+  pageParam?: TPageParam
 }
 
 export type InitialDataFunction<T> = () => T | undefined
-export type PlaceholderDataFunction<T> = () => T | undefined
+
 export type InitialStaleFunction = () => boolean
 
-export type GetPreviousPageParamFunction<TGenerics extends QueryGenerics> = (
-  firstPage: TGenerics['Data'],
-  allPages: TGenerics['Data'][]
-) => TGenerics['PreviousPageParam']
+export type PlaceholderDataFunction<TResult> = () => TResult | undefined
 
-export type GetNextPageParamFunction<TGenerics extends QueryGenerics> = (
-  lastPage: TGenerics['Data'],
-  allPages: TGenerics['Data'][]
-) => TGenerics['NextPageParam']
+export type QueryKeyHashFunction = (queryKey: QueryKey) => string
 
-export interface InfiniteQueryResult<TGenerics extends QueryGenerics> {
-  pages: TGenerics['Data'][]
-  pageParams: TGenerics['PageParam'][]
+export type GetPreviousPageParamFunction<TQueryFnData = unknown> = (
+  firstPage: TQueryFnData,
+  allPages: TQueryFnData[]
+) => unknown
+
+export type GetNextPageParamFunction<TQueryFnData = unknown> = (
+  lastPage: TQueryFnData,
+  allPages: TQueryFnData[]
+) => unknown
+
+export interface InfiniteData<TData> {
+  pages: TData[]
+  pageParams: unknown[]
 }
 
-export interface QueryOptions<TGenerics extends QueryGenerics = QueryGenerics> {
+export interface QueryOptions<TGenerics extends QueryGenerics> {
   /**
    * If `false`, failed queries will not retry by default.
    * If `true`, failed queries will retry infinitely., failureCount: num
    * If set to an integer number, e.g. 3, failed queries will retry until the failed query count meets that number.
    * If set to a function `(failureCount, error) => boolean` failed queries will retry until the function returns false.
    */
-  queryKey?: TGenerics['QueryKey']
-  queryHash?: string
-  retry?: RetryValue<TGenerics['Error']>
+  retry?: RetryValue<TError>
   retryDelay?: RetryDelayValue
   cacheTime?: number
-  isDataEqual?: (
-    oldData: TGenerics['Data'] | undefined,
-    newData: TGenerics['Data']
-  ) => boolean
-  queryFn?: QueryFunction<TGenerics>
+  isDataEqual?: (oldData: TData | undefined, newData: TData) => boolean
+  queryFn?: QueryFunction<TQueryFnData>
+  queryHash?: string
+  queryKey?: QueryKey
   queryKeyHashFn?: QueryKeyHashFunction
-  initialData?: TGenerics['Data'] | InitialDataFunction<TGenerics['Data']>
+  initialData?: TData | InitialDataFunction<TData>
   initialDataUpdatedAt?: number | (() => number | undefined)
   behavior?: QueryBehavior<TGenerics>
   /**
@@ -95,17 +69,21 @@ export interface QueryOptions<TGenerics extends QueryGenerics = QueryGenerics> {
    * This function can be set to automatically get the previous cursor for infinite queries.
    * The result will also be used to determine the value of `hasPreviousPage`.
    */
-  getPreviousPageParam?: GetPreviousPageParamFunction<TGenerics>
+  getPreviousPageParam?: GetPreviousPageParamFunction<TQueryFnData>
   /**
    * This function can be set to automatically get the next cursor for infinite queries.
    * The result will also be used to determine the value of `hasNextPage`.
    */
-  getNextPageParam?: GetNextPageParamFunction<TGenerics>
+  getNextPageParam?: GetNextPageParamFunction<TQueryFnData>
   _defaulted?: boolean
 }
 
-export interface QueryObserverOptions<TGenerics extends QueryGenerics>
-  extends QueryOptions<TGenerics> {
+export interface QueryObserverOptions<
+  TQueryFnData = unknown,
+  TError = unknown,
+  TData = TQueryFnData,
+  TQueryData = TQueryFnData
+> extends QueryOptions<TQueryFnData, TError, TData> {
   /**
    * Set this to `false` to disable automatic refetching when the query mounts or changes query keys.
    * To refetch the query, use the `refetch` method returned from the `useQuery` instance.
@@ -156,31 +134,25 @@ export interface QueryObserverOptions<TGenerics extends QueryGenerics>
   /**
    * If set, the component will only re-render if any of the listed properties change.
    * When set to `['data', 'error']`, the component will only re-render when the `data` or `error` properties change.
+   * When set to `tracked`, access to properties will be tracked, and the component will only re-render when one of the tracked properties change.
    */
-  notifyOnChangeProps?:
-    | Array<keyof InfiniteQueryObserverResult<TGenerics>>
-    | 'tracked'
+  notifyOnChangeProps?: Array<keyof InfiniteQueryObserverResult> | 'tracked'
   /**
    * If set, the component will not re-render if any of the listed properties change.
    */
-  notifyOnChangePropsExclusions?: Array<
-    keyof InfiniteQueryObserverResult<TGenerics>
-  >
+  notifyOnChangePropsExclusions?: Array<keyof InfiniteQueryObserverResult>
   /**
    * This callback will fire any time the query successfully fetches new data.
    */
-  onSuccess?: (data: TGenerics['Data']) => void
+  onSuccess?: (data: TData) => void
   /**
    * This callback will fire if the query encounters an error and will be passed the error.
    */
-  onError?: (err: TGenerics['Error']) => void
+  onError?: (err: TError) => void
   /**
    * This callback will fire any time the query is either successfully fetched or errors and be passed either the data or error.
    */
-  onSettled?: (
-    data: TGenerics['Data'] | undefined,
-    error: TGenerics['Error'] | null
-  ) => void
+  onSettled?: (data: TData | undefined, error: TError | null) => void
   /**
    * Whether errors should be thrown instead of setting the `error` property.
    * Defaults to `false`.
@@ -189,7 +161,7 @@ export interface QueryObserverOptions<TGenerics extends QueryGenerics>
   /**
    * This option can be used to transform or select a part of the data returned by the query function.
    */
-  select?: (data: TGenerics['Data']) => TGenerics['SelectedData']
+  select?: (data: TQueryData) => TData
   /**
    * If set to `true`, the query will suspend when `status === 'loading'`
    * and throw errors when `status === 'error'`.
@@ -204,13 +176,27 @@ export interface QueryObserverOptions<TGenerics extends QueryGenerics>
   /**
    * If set, this value will be used as the placeholder data for this particular query observer while the query is still in the `loading` data and no initialData has been provided.
    */
-  placeholderData?:
-    | TGenerics['Data']
-    | PlaceholderDataFunction<TGenerics['Data']>
+  placeholderData?: TData | PlaceholderDataFunction<TData>
 }
 
-export interface FetchQueryOptions<TGenerics extends QueryGenerics>
-  extends QueryOptions<TGenerics> {
+export interface InfiniteQueryObserverOptions<
+  TQueryFnData = unknown,
+  TError = unknown,
+  TData = TQueryFnData,
+  TQueryData = TQueryFnData
+>
+  extends QueryObserverOptions<
+    TQueryFnData,
+    TError,
+    InfiniteData<TData>,
+    InfiniteData<TQueryData>
+  > {}
+
+export interface FetchQueryOptions<
+  TQueryFnData = unknown,
+  TError = unknown,
+  TData = TQueryFnData
+> extends QueryOptions<TQueryFnData, TError, TData> {
   /**
    * The time in milliseconds after data is considered stale.
    * If the data is fresh it will be returned from the cache.
@@ -218,10 +204,11 @@ export interface FetchQueryOptions<TGenerics extends QueryGenerics>
   staleTime?: number
 }
 
-export interface FetchInfiniteQueryOptions<TGenerics extends QueryGenerics>
-  extends FetchQueryOptions<
-    Merge<TGenerics, { Data: InfiniteQueryResult<TGenerics> }>
-  > {}
+export interface FetchInfiniteQueryOptions<
+  TQueryFnData = unknown,
+  TError = unknown,
+  TData = TQueryFnData
+> extends FetchQueryOptions<TQueryFnData, TError, InfiniteData<TData>> {}
 
 export interface ResultOptions {
   throwOnError?: boolean
@@ -254,10 +241,10 @@ export interface FetchPreviousPageOptions extends ResultOptions {
 
 export type QueryStatus = 'idle' | 'loading' | 'error' | 'success'
 
-export interface QueryObserverBaseResult<TGenerics extends QueryGenerics> {
-  data: TGenerics['Data'] | undefined
+export interface QueryObserverBaseResult<TData = unknown, TError = unknown> {
+  data: TData | undefined
   dataUpdatedAt: number
-  error: TGenerics['Error'] | null
+  error: TError | null
   errorUpdatedAt: number
   failureCount: number
   isError: boolean
@@ -272,13 +259,15 @@ export interface QueryObserverBaseResult<TGenerics extends QueryGenerics> {
   isRefetchError: boolean
   isStale: boolean
   isSuccess: boolean
-  refetch: (options?: RefetchOptions) => Promise<QueryObserverResult<TGenerics>>
+  refetch: (
+    options?: RefetchOptions
+  ) => Promise<QueryObserverResult<TData, TError>>
   remove: () => void
   status: QueryStatus
 }
 
-export interface QueryObserverIdleResult<TGenerics extends QueryGenerics>
-  extends QueryObserverBaseResult<TGenerics> {
+export interface QueryObserverIdleResult<TData = unknown, TError = unknown>
+  extends QueryObserverBaseResult<TData, TError> {
   data: undefined
   error: null
   isError: false
@@ -290,8 +279,8 @@ export interface QueryObserverIdleResult<TGenerics extends QueryGenerics>
   status: 'idle'
 }
 
-export interface QueryObserverLoadingResult<TGenerics extends QueryGenerics>
-  extends QueryObserverBaseResult<TGenerics> {
+export interface QueryObserverLoadingResult<TData = unknown, TError = unknown>
+  extends QueryObserverBaseResult<TData, TError> {
   data: undefined
   error: null
   isError: false
@@ -304,10 +293,11 @@ export interface QueryObserverLoadingResult<TGenerics extends QueryGenerics>
 }
 
 export interface QueryObserverLoadingErrorResult<
-  TGenerics extends QueryGenerics
-> extends QueryObserverBaseResult<TGenerics> {
+  TData = unknown,
+  TError = unknown
+> extends QueryObserverBaseResult<TData, TError> {
   data: undefined
-  error: TGenerics['Error']
+  error: TError
   isError: true
   isIdle: false
   isLoading: false
@@ -318,10 +308,11 @@ export interface QueryObserverLoadingErrorResult<
 }
 
 export interface QueryObserverRefetchErrorResult<
-  TGenerics extends QueryGenerics
-> extends QueryObserverBaseResult<TGenerics> {
-  data: TGenerics['Data']
-  error: TGenerics['Error']
+  TData = unknown,
+  TError = unknown
+> extends QueryObserverBaseResult<TData, TError> {
+  data: TData
+  error: TError
   isError: true
   isIdle: false
   isLoading: false
@@ -331,9 +322,9 @@ export interface QueryObserverRefetchErrorResult<
   status: 'error'
 }
 
-export interface QueryObserverSuccessResult<TGenerics extends QueryGenerics>
-  extends QueryObserverBaseResult<TGenerics> {
-  data: TGenerics['Data']
+export interface QueryObserverSuccessResult<TData = unknown, TError = unknown>
+  extends QueryObserverBaseResult<TData, TError> {
+  data: TData
   error: null
   isError: false
   isIdle: false
@@ -344,22 +335,23 @@ export interface QueryObserverSuccessResult<TGenerics extends QueryGenerics>
   status: 'success'
 }
 
-export type QueryObserverResult<TGenerics extends QueryGenerics> =
-  | QueryObserverIdleResult<TGenerics>
-  | QueryObserverLoadingErrorResult<TGenerics>
-  | QueryObserverLoadingResult<TGenerics>
-  | QueryObserverRefetchErrorResult<TGenerics>
-  | QueryObserverSuccessResult<TGenerics>
+export type QueryObserverResult<TData = unknown, TError = unknown> =
+  | QueryObserverIdleResult<TData, TError>
+  | QueryObserverLoadingErrorResult<TData, TError>
+  | QueryObserverLoadingResult<TData, TError>
+  | QueryObserverRefetchErrorResult<TData, TError>
+  | QueryObserverSuccessResult<TData, TError>
 
 export interface InfiniteQueryObserverBaseResult<
-  TGenerics extends QueryGenerics
-> extends QueryObserverBaseResult<TGenerics> {
+  TData = unknown,
+  TError = unknown
+> extends QueryObserverBaseResult<InfiniteData<TData>, TError> {
   fetchNextPage: (
     options?: FetchNextPageOptions
-  ) => Promise<InfiniteQueryObserverResult<TGenerics>>
+  ) => Promise<InfiniteQueryObserverResult<TData, TError>>
   fetchPreviousPage: (
     options?: FetchPreviousPageOptions
-  ) => Promise<InfiniteQueryObserverResult<TGenerics>>
+  ) => Promise<InfiniteQueryObserverResult<TData, TError>>
   hasNextPage?: boolean
   hasPreviousPage?: boolean
   isFetchingNextPage: boolean
@@ -367,8 +359,9 @@ export interface InfiniteQueryObserverBaseResult<
 }
 
 export interface InfiniteQueryObserverIdleResult<
-  TGenerics extends QueryGenerics
-> extends InfiniteQueryObserverBaseResult<TGenerics> {
+  TData = unknown,
+  TError = unknown
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
   data: undefined
   error: null
   isError: false
@@ -381,8 +374,9 @@ export interface InfiniteQueryObserverIdleResult<
 }
 
 export interface InfiniteQueryObserverLoadingResult<
-  TGenerics extends QueryGenerics
-> extends InfiniteQueryObserverBaseResult<TGenerics> {
+  TData = unknown,
+  TError = unknown
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
   data: undefined
   error: null
   isError: false
@@ -395,10 +389,11 @@ export interface InfiniteQueryObserverLoadingResult<
 }
 
 export interface InfiniteQueryObserverLoadingErrorResult<
-  TGenerics extends QueryGenerics
-> extends InfiniteQueryObserverBaseResult<TGenerics> {
+  TData = unknown,
+  TError = unknown
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
   data: undefined
-  error: TGenerics['Error']
+  error: TError
   isError: true
   isIdle: false
   isLoading: false
@@ -409,10 +404,11 @@ export interface InfiniteQueryObserverLoadingErrorResult<
 }
 
 export interface InfiniteQueryObserverRefetchErrorResult<
-  TGenerics extends QueryGenerics
-> extends InfiniteQueryObserverBaseResult<TGenerics> {
-  data: InfiniteQueryResult<TGenerics>
-  error: TGenerics['Error']
+  TData = unknown,
+  TError = unknown
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
+  data: InfiniteData<TData>
+  error: TError
   isError: true
   isIdle: false
   isLoading: false
@@ -423,9 +419,10 @@ export interface InfiniteQueryObserverRefetchErrorResult<
 }
 
 export interface InfiniteQueryObserverSuccessResult<
-  TGenerics extends QueryGenerics
-> extends InfiniteQueryObserverBaseResult<TGenerics> {
-  data: InfiniteQueryResult<TGenerics>
+  TData = unknown,
+  TError = unknown
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
+  data: InfiniteData<TData>
   error: null
   isError: false
   isIdle: false
@@ -436,93 +433,110 @@ export interface InfiniteQueryObserverSuccessResult<
   status: 'success'
 }
 
-export type InfiniteQueryObserverResult<TGenerics extends QueryGenerics> =
-  | InfiniteQueryObserverIdleResult<TGenerics>
-  | InfiniteQueryObserverLoadingErrorResult<TGenerics>
-  | InfiniteQueryObserverLoadingResult<TGenerics>
-  | InfiniteQueryObserverRefetchErrorResult<TGenerics>
-  | InfiniteQueryObserverSuccessResult<TGenerics>
+export type InfiniteQueryObserverResult<TData = unknown, TError = unknown> =
+  | InfiniteQueryObserverIdleResult<TData, TError>
+  | InfiniteQueryObserverLoadingErrorResult<TData, TError>
+  | InfiniteQueryObserverLoadingResult<TData, TError>
+  | InfiniteQueryObserverRefetchErrorResult<TData, TError>
+  | InfiniteQueryObserverSuccessResult<TData, TError>
 
 export type MutationKey = string | unknown[]
 
 export type MutationStatus = 'idle' | 'loading' | 'success' | 'error'
 
-export type MutationFunction<TGenerics extends MutationGenerics> = (
-  variables: TGenerics['Variables']
-) => Promise<TGenerics['Data']>
+export type MutationFunction<TData = unknown, TVariables = unknown> = (
+  variables: TVariables
+) => Promise<TData>
 
 export interface MutationOptions<
-  TGenerics extends MutationGenerics = MutationGenerics
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
 > {
-  mutationFn?: MutationFunction<TGenerics>
+  mutationFn?: MutationFunction<TData, TVariables>
   mutationKey?: string | unknown[]
-  variables?: TGenerics['Variables']
-  onMutate?: (
-    variables: TGenerics['Variables']
-  ) => Promise<TGenerics['Context']> | TGenerics['Context']
+  variables?: TVariables
+  onMutate?: (variables: TVariables) => Promise<TContext> | TContext
   onSuccess?: (
-    data: TGenerics['Data'],
-    variables: TGenerics['Variables'],
-    context: TGenerics['Context']
+    data: TData,
+    variables: TVariables,
+    context: TContext
   ) => Promise<void> | void
   onError?: (
-    error: TGenerics['Error'],
-    variables: TGenerics['Variables'],
-    context: TGenerics['Context'] | undefined
+    error: TError,
+    variables: TVariables,
+    context: TContext | undefined
   ) => Promise<void> | void
   onSettled?: (
-    data: TGenerics['Data'] | undefined,
-    error: TGenerics['Error'] | null,
-    variables: TGenerics['Variables'],
-    context: TGenerics['Context'] | undefined
+    data: TData | undefined,
+    error: TError | null,
+    variables: TVariables,
+    context: TContext | undefined
   ) => Promise<void> | void
-  retry?: RetryValue<TGenerics['Error']>
+  retry?: RetryValue<TError>
   retryDelay?: RetryDelayValue
   _defaulted?: boolean
 }
 
-export interface MutationObserverOptions<TGenerics extends MutationGenerics>
-  extends MutationOptions<TGenerics> {
+export interface MutationObserverOptions<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+> extends MutationOptions<TData, TError, TVariables, TContext> {
   useErrorBoundary?: boolean
 }
 
-export interface MutateOptions<TGenerics extends MutationGenerics> {
+export interface MutateOptions<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+> {
   onSuccess?: (
-    data: TGenerics['Data'],
-    variables: TGenerics['Variables'],
-    context: TGenerics['Context']
+    data: TData,
+    variables: TVariables,
+    context: TContext
   ) => Promise<void> | void
   onError?: (
-    error: TGenerics['Error'],
-    variables: TGenerics['Variables'],
-    context: TGenerics['Context'] | undefined
+    error: TError,
+    variables: TVariables,
+    context: TContext | undefined
   ) => Promise<void> | void
   onSettled?: (
-    data: TGenerics['Data'] | undefined,
-    error: TGenerics['Error'] | null,
-    variables: TGenerics['Variables'],
-    context: TGenerics['Context'] | undefined
+    data: TData | undefined,
+    error: TError | null,
+    variables: TVariables,
+    context: TContext | undefined
   ) => Promise<void> | void
 }
 
-export type MutateFunction<TGenerics extends MutationGenerics> = (
-  variables: TGenerics['Variables'],
-  options?: MutateOptions<TGenerics>
-) => Promise<TGenerics['Data']>
+export type MutateFunction<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+> = (
+  variables: TVariables,
+  options?: MutateOptions<TData, TError, TVariables, TContext>
+) => Promise<TData>
 
-export interface MutationObserverResult<TGenerics extends MutationGenerics>
-  extends MutationState<TGenerics> {
+export interface MutationObserverResult<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+> extends MutationState<TData, TError, TVariables, TContext> {
   isError: boolean
   isIdle: boolean
   isLoading: boolean
   isSuccess: boolean
-  mutate: MutateFunction<TGenerics>
+  mutate: MutateFunction<TData, TError, TVariables, TContext>
   reset: () => void
 }
 
-export interface DefaultQueryClientOptions<TError = unknown> {
-  queries?: QueryObserverOptions<Merge<QueryGenerics, { Error: TError }>>
-  mutations?: MutationObserverOptions<
-    Merge<MutationGenerics, { Error: TError }>
-  >
+export interface DefaultOptions<TError = unknown> {
+  queries?: QueryObserverOptions<unknown, TError>
+  mutations?: MutationObserverOptions<unknown, TError, unknown, unknown>
 }

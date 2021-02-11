@@ -36,7 +36,7 @@ export interface QueryFilters {
   /**
    * Include queries matching this predicate function
    */
-  predicate?: (query: Query) => boolean
+  predicate?: (query: Query<any>) => boolean
 }
 
 export type DataUpdateFunction<TInput, TOutput> = (input: TInput) => TOutput
@@ -84,10 +84,7 @@ export function timeUntilStale(updatedAt: number, staleTime?: number): number {
   return Math.max(updatedAt + (staleTime || 0) - Date.now(), 0)
 }
 
-export function matchQuery(
-  filters: QueryFilters,
-  query: Query<any, any>
-): boolean {
+export function matchQuery(filters: QueryFilters, query: Query<any>): boolean {
   const {
     active,
     exact,
@@ -137,7 +134,7 @@ export function matchQuery(
 }
 
 export function getQueryKeyHashFn(
-  options?: QueryOptions<any, any>
+  options?: QueryOptions<any>
 ): QueryKeyHashFunction {
   return options?.queryKeyHashFn || hashQueryKey
 }
@@ -145,7 +142,7 @@ export function getQueryKeyHashFn(
 /**
  * Default query keys hash function.
  */
-export function hashQueryKey(queryKey: QueryKey): string {
+export function hashQueryKey(queryKey?: QueryKey): string {
   return stableValueHash(queryKey)
 }
 
@@ -153,6 +150,9 @@ export function hashQueryKey(queryKey: QueryKey): string {
  * Hashes the value into a stable hash.
  */
 export function stableValueHash(value: any): string {
+  if (typeof value === 'undefined') {
+    throw new Error('A query key is required!')
+  }
   return JSON.stringify(value, (_, val) =>
     isPlainObject(val)
       ? Object.keys(val)

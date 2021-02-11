@@ -1,4 +1,4 @@
-import type { MutationOptions } from './types'
+import type { MutationGenerics, MutationOptions } from './types'
 import type { QueryClient } from './queryClient'
 import { notifyManager } from './notifyManager'
 import { createMutation, Mutation, MutationState } from './mutation'
@@ -8,7 +8,7 @@ import { Subscribable } from './subscribable'
 // TYPES
 
 interface MutationCacheConfig {
-  onError?: <TMutation extends Mutation<unknown, unknown, unknown, unknown>>(
+  onError?: <TMutation extends Mutation<any>>(
     error: unknown,
     variables: unknown,
     context: unknown,
@@ -16,39 +16,39 @@ interface MutationCacheConfig {
   ) => void
 }
 
-type MutationCacheListener = (mutation?: Mutation) => void
+type MutationCacheListener = (mutation?: Mutation<any>) => void
 
 export type MutationCache = {
   config: MutationCacheConfig
-  build<TData, TError, TVariables, TContext>(
+  build<TGenerics extends MutationGenerics>(
     client: QueryClient,
-    options: MutationOptions<TData, TError, TVariables, TContext>,
-    state?: MutationState<TData, TError, TVariables, TContext>
-  ): Mutation<TData, TError, TVariables, TContext>
-  add(mutation: Mutation<any, any, any, any>): void
-  remove(mutation: Mutation<any, any, any, any>): void
+    options: MutationOptions<TGenerics>,
+    state?: MutationState<TGenerics>
+  ): Mutation<TGenerics>
+  add<TGenerics extends MutationGenerics>(mutation: Mutation<TGenerics>): void
+  remove(mutation: Mutation<any>): void
   clear(): void
-  getAll(): Mutation[]
-  notify(mutation?: Mutation<any, any, any, any>): void
+  getAll<TGenerics extends MutationGenerics>(): Mutation<TGenerics>[]
+  notify(mutation?: Mutation<any>): void
   onFocus(): void
   onOnline(): void
   resumePausedMutations(): Promise<void>
 }
 
 export function createMutationCache(userConfig?: MutationCacheConfig) {
-  let mutations: Mutation<any, any, any, any>[] = []
+  let mutations: Mutation<any>[] = []
   let mutationId = 0
 
   const subscribable = Subscribable<MutationCacheListener>()
 
   const mutationCache: MutationCache = {
     config: userConfig || {},
-    build<TData, TError, TVariables, TContext>(
+    build<TGenerics extends MutationGenerics>(
       client: QueryClient,
-      options: MutationOptions<TData, TError, TVariables, TContext>,
-      state?: MutationState<TData, TError, TVariables, TContext>
-    ): Mutation<TData, TError, TVariables, TContext> {
-      const mutation = createMutation<TData, TError, TVariables, TContext>({
+      options: MutationOptions<TGenerics>,
+      state?: MutationState<TGenerics>
+    ): Mutation<TGenerics> {
+      const mutation = createMutation<TGenerics>({
         mutationCache,
         mutationId: ++mutationId,
         options: client.defaultMutationOptions(options),

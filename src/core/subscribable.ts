@@ -1,17 +1,17 @@
-type Listener = () => void
+type Listener = (...args: any[]) => void
 
 interface SubscribableOptions {
   onSubscribe?: () => void
   onUnsubscribe?: () => void
 }
 
-export type Subscribable<TListener extends Function = Listener> = {
+export type Subscribable<TListener extends Listener> = {
   listeners: TListener[]
   subscribe(listener?: TListener): () => void
   hasListeners(): boolean
 }
 
-export function Subscribable<TListener extends Function = Listener>({
+export function Subscribable<TListener extends Listener>({
   onSubscribe,
   onUnsubscribe,
 }: SubscribableOptions = {}) {

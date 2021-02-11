@@ -6,13 +6,14 @@ import type {
   MutateOptions,
   MutationObserverResult,
   MutationObserverOptions,
+  MutationGenerics,
 } from './types'
 import { getStatusProps } from './utils'
 
 // TYPES
 
-type MutationObserverListener<TData, TError, TVariables, TContext> = (
-  result: MutationObserverResult<TData, TError, TVariables, TContext>
+type MutationObserverListener<TGenerics extends MutationGenerics> = (
+  result: MutationObserverResult<TGenerics>
 ) => void
 
 interface NotifyOptions {
@@ -21,54 +22,31 @@ interface NotifyOptions {
   onSuccess?: boolean
 }
 
-export type MutationObserver<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
-> = {
-  options: MutationObserverOptions<TData, TError, TVariables, TContext>
-  setOptions(
-    options?: MutationObserverOptions<TData, TError, TVariables, TContext>
-  ): void
-  onMutationUpdate(action: Action<TData, TError, TVariables, TContext>): void
-  getCurrentResult(): MutationObserverResult<
-    TData,
-    TError,
-    TVariables,
-    TContext
-  >
+export type MutationObserver<TGenerics extends MutationGenerics> = {
+  options: MutationObserverOptions<TGenerics>
+  setOptions(options?: MutationObserverOptions<TGenerics>): void
+  onMutationUpdate(action: Action<TGenerics>): void
+  getCurrentResult(): MutationObserverResult<TGenerics>
   reset(): void
   mutate(
-    variables?: TVariables,
-    options?: MutateOptions<TData, TError, TVariables, TContext>
-  ): Promisable<TGenerics['Data']>
-  subscribe: Subscribable<
-    MutationObserverListener<TData, TError, TVariables, TContext>
-  >['subscribe']
+    variables?: TGenerics['Variables'],
+    options?: MutateOptions<TGenerics>
+  ): Promise<TGenerics['Data']>
+  subscribe: Subscribable<MutationObserverListener<TGenerics>>['subscribe']
   hasListeners: Subscribable<
-    MutationObserverListener<TData, TError, TVariables, TContext>
+    MutationObserverListener<TGenerics>
   >['hasListeners']
 }
 
-export function createMutationObserver<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
->(
+export function createMutationObserver<TGenerics extends MutationGenerics>(
   client: QueryClient,
-  options: MutationObserverOptions<TData, TError, TVariables, TContext>
+  options: MutationObserverOptions<TGenerics>
 ) {
-  let currentResult: MutationObserverResult<TData, TError, TVariables, TContext>
-  let currentMutation: Mutation<TData, TError, TVariables, TContext> | undefined
-  let mutateOptions:
-    | MutateOptions<TData, TError, TVariables, TContext>
-    | undefined
+  let currentResult: MutationObserverResult<TGenerics>
+  let currentMutation: Mutation<TGenerics> | undefined
+  let mutateOptions: MutateOptions<TGenerics> | undefined
 
-  const subscribable = Subscribable<
-    MutationObserverListener<TData, TError, TVariables, TContext>
-  >({
+  const subscribable = Subscribable<MutationObserverListener<TGenerics>>({
     onUnsubscribe: () => {
       if (!subscribable.listeners.length) {
         currentMutation?.removeObserver(mutationObserver)
@@ -76,12 +54,7 @@ export function createMutationObserver<
     },
   })
 
-  const mutationObserver: MutationObserver<
-    TData,
-    TError,
-    TVariables,
-    TContext
-  > = {
+  const mutationObserver: MutationObserver<TGenerics> = {
     options,
     subscribe: subscribable.subscribe,
     hasListeners: subscribable.hasListeners,
@@ -141,7 +114,7 @@ export function createMutationObserver<
   function updateResult(): void {
     const state = currentMutation
       ? currentMutation.state
-      : getDefaultState<TData, TError, TVariables, TContext>()
+      : getDefaultState<TGenerics>()
 
     currentResult = {
       ...state,

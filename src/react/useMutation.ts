@@ -8,26 +8,23 @@ import {
 } from '../core/mutationObserver'
 import { useQueryClient } from './QueryClientProvider'
 import { UseMutateFunction, UseMutationResult } from './types'
-import { MutationObserverResult, MutationOptions } from '../core/types'
+import {
+  MutationGenerics,
+  MutationObserverResult,
+  MutationOptions,
+} from '../core/types'
 import { useIsMounted } from './useIsMounted'
 
 // HOOK
 
-export function useMutation<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
->(
-  options: MutationOptions<TData, TError, TVariables, TContext>
-): UseMutationResult<TData, TError, TVariables, TContext> {
+export function useMutation<TGenerics extends MutationGenerics>(
+  options: MutationOptions<TGenerics>
+): UseMutationResult<TGenerics> {
   const isMounted = useIsMounted()
   const queryClient = useQueryClient()
 
   // Create mutation observer
-  const observerRef = React.useRef<
-    MutationObserver<TData, TError, TVariables, TContext>
-  >()
+  const observerRef = React.useRef<MutationObserver<TGenerics>>()
   const observer =
     observerRef.current || createMutationObserver(queryClient, options)
   observerRef.current = observer
@@ -46,9 +43,7 @@ export function useMutation<
     () =>
       observer.subscribe(
         notifyManager.batchCalls(
-          (
-            result: MutationObserverResult<TData, TError, TVariables, TContext>
-          ) => {
+          (result: MutationObserverResult<TGenerics>) => {
             if (isMounted()) {
               setCurrentResult(result)
             }
@@ -58,9 +53,7 @@ export function useMutation<
     [observer, isMounted]
   )
 
-  const mutate = React.useCallback<
-    UseMutateFunction<TData, TError, TVariables, TContext>
-  >(
+  const mutate = React.useCallback<UseMutateFunction<TGenerics>>(
     (variables, mutateOptions) => {
       observer.mutate(variables, mutateOptions).catch(noop)
     },

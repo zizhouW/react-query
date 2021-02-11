@@ -12,9 +12,11 @@ import type {
   InfiniteQueryResult,
   InvalidateOptions,
   InvalidateQueryFilters,
+  MutationGenerics,
   MutationKey,
   MutationObserverOptions,
   MutationOptions,
+  QueryGenerics,
   QueryKey,
   QueryObserverOptions,
   QueryOptions,
@@ -40,27 +42,29 @@ interface QueryClientConfig {
 
 interface QueryDefaults {
   queryKey: QueryKey
-  defaultOptions: QueryOptions<any, any, any>
+  defaultOptions: QueryOptions
 }
 
 interface MutationDefaults {
   mutationKey: MutationKey
-  defaultOptions: MutationOptions<any, any, any, any>
+  defaultOptions: MutationOptions
 }
 
 export type QueryClient = {
   mount(): void
   unmount(): void
   isFetching(filters?: QueryFilters): number
-  getQueryData<TData = unknown>(filters?: QueryFilters): TData | undefined
-  setQueryData<TData>(
-    queryKey: QueryKey,
-    updater: Updater<TData | undefined, TData>,
-    options?: SetDataOptions
-  ): TData
-  getQueryState<TData = unknown, TError = undefined>(
+  getQueryData<TGenerics extends QueryGenerics>(
     filters?: QueryFilters
-  ): QueryState<TData, TError> | undefined
+  ): TGenerics['Data'] | undefined
+  setQueryData<TGenerics extends QueryGenerics>(
+    queryKey: TGenerics['QueryKey'],
+    updater: Updater<TGenerics['Data'] | undefined, TGenerics['Data']>,
+    options?: SetDataOptions
+  ): TGenerics['Data']
+  getQueryState<TGenerics extends QueryGenerics>(
+    filters?: QueryFilters
+  ): QueryState<TGenerics> | undefined
   removeQueries(filters?: QueryFilters): void
   resetQueries(filters?: QueryFilters, options?: ResetOptions): Promise<void>
   cancelQueries(filters?: QueryFilters, options?: CancelOptions): Promise<void>
@@ -72,55 +76,47 @@ export type QueryClient = {
     filters?: QueryFilters,
     options?: RefetchOptions
   ): Promise<void>
-  fetchQuery<TQueryFnData = unknown, TError = unknown, TData = TQueryFnData>(
-    options: FetchQueryOptions<TQueryFnData, TError, TData>
-  ): Promise<TData | undefined>
-  prefetchQuery(options: FetchQueryOptions): Promise<void>
-  fetchInfiniteQuery<
-    TQueryFnData = unknown,
-    TError = unknown,
-    TData = TQueryFnData
-  >(
-    options: FetchInfiniteQueryOptions<TQueryFnData, TError, TData>
-  ): Promise<InfiniteQueryResult<TData> | undefined>
-  prefetchInfiniteQuery(options: FetchInfiniteQueryOptions): Promise<void>
+  fetchQuery<TGenerics extends QueryGenerics>(
+    options: FetchQueryOptions<TGenerics>
+  ): Promise<TGenerics['Data'] | undefined>
+  prefetchQuery<TGenerics extends QueryGenerics>(
+    options: FetchQueryOptions<TGenerics>
+  ): Promise<void>
+  fetchInfiniteQuery<TGenerics extends QueryGenerics>(
+    options: FetchInfiniteQueryOptions<TGenerics>
+  ): Promise<InfiniteQueryResult<TGenerics> | undefined>
+  prefetchInfiniteQuery<TGenerics extends QueryGenerics>(
+    options: FetchInfiniteQueryOptions<TGenerics>
+  ): Promise<void>
   cancelMutations(): Promise<void>
   resumePausedMutations(): Promise<void>
-  executeMutation<
-    TData = unknown,
-    TError = unknown,
-    TVariables = void,
-    TContext = unknown
-  >(
-    options: MutationOptions<TData, TError, TVariables, TContext>
-  ): Promisable<TGenerics['Data']>
+  executeMutation<TGenerics extends MutationGenerics>(
+    options: MutationOptions<MutationGenerics>
+  ): Promise<TGenerics['Data']>
   getQueryCache(): QueryCache
   getMutationCache(): MutationCache
   getDefaultOptions(): DefaultQueryClientOptions
   setDefaultOptions(options: DefaultQueryClientOptions): void
-  setQueryDefaults(
-    queryKey: QueryKey,
-    options: QueryObserverOptions<any, any, any, any>
-  ): void
-  getQueryDefaults(
+  setQueryDefaults(queryKey: QueryKey, options: QueryObserverOptions<any>): void
+  getQueryDefaults<TGenerics extends QueryGenerics>(
     queryKey?: QueryKey
-  ): QueryObserverOptions<any, any, any, any> | undefined
+  ): QueryObserverOptions<TGenerics> | undefined
   setMutationDefaults(
     mutationKey: MutationKey,
-    options: MutationObserverOptions<any, any, any, any>
+    options: MutationObserverOptions<any>
   ): void
-  getMutationDefaults(
-    mutationKey?: MutationKey
-  ): MutationObserverOptions<any, any, any, any> | undefined
-  defaultQueryOptions<T extends QueryOptions<any, any, any>>(options?: T): T
-  defaultQueryObserverOptions<
-    T extends QueryObserverOptions<any, any, any, any>
-  >(
-    options?: T
-  ): T
-  defaultMutationOptions<T extends MutationOptions<any, any, any, any>>(
-    options?: T
-  ): T
+  getMutationDefaults<TGenerics extends MutationGenerics>(
+    queryKey?: MutationKey
+  ): MutationObserverOptions<TGenerics> | undefined
+  defaultQueryOptions<TGenerics extends QueryGenerics>(
+    options?: QueryOptions<TGenerics>
+  ): FetchQueryOptions<TGenerics>
+  defaultQueryObserverOptions<TGenerics extends QueryGenerics>(
+    options?: QueryObserverOptions<TGenerics>
+  ): QueryObserverOptions<TGenerics>
+  defaultMutationOptions<TGenerics extends MutationGenerics>(
+    options?: MutationOptions<TGenerics>
+  ): MutationOptions<TGenerics>
   clear(): void
 }
 
@@ -156,25 +152,27 @@ export function createQueryClient(config: QueryClientConfig = {}) {
       filters.fetching = true
       return queryCache.findAll(filters).length
     },
-    getQueryData: <TData = unknown>(
+    getQueryData: <TGenerics extends QueryGenerics>(
       filters?: QueryFilters
-    ): TData | undefined => {
-      return queryCache.find<TData>(filters)?.state.data
+    ): TGenerics['Data'] | undefined => {
+      return queryCache.find<TGenerics>(filters)?.state.data
     },
-    setQueryData: <TData>(
-      queryKey: QueryKey,
-      updater: Updater<TData | undefined, TData>,
+    setQueryData: <TGenerics extends QueryGenerics>(
+      queryKey: TGenerics['QueryKey'],
+      updater: Updater<TGenerics['Data'] | undefined, TGenerics['Data']>,
       options?: SetDataOptions
-    ): TData => {
-      const defaultedOptions = queryClient.defaultQueryOptions({ queryKey })
+    ): TGenerics['Data'] => {
+      const defaultedOptions = queryClient.defaultQueryOptions<TGenerics>({
+        queryKey,
+      })
       return queryCache
-        .build<TData, unknown, TData>(queryClient, defaultedOptions)
+        .build<TGenerics>(queryClient, defaultedOptions)
         .setData(updater, options)
     },
-    getQueryState: <TData = unknown, TError = undefined>(
+    getQueryState: <TGenerics extends QueryGenerics>(
       filters?: QueryFilters
-    ): QueryState<TData, TError> | undefined =>
-      queryCache.find<TData, TError>(filters)?.state,
+    ): QueryState<TGenerics> | undefined =>
+      queryCache.find<TGenerics>(filters)?.state,
     removeQueries: filters => {
       notifyManager.batch(() => {
         queryCache.findAll(filters).forEach(query => {
@@ -233,13 +231,7 @@ export function createQueryClient(config: QueryClientConfig = {}) {
 
       return promise
     },
-    fetchQuery: <
-      TQueryFnData = unknown,
-      TError = unknown,
-      TData = TQueryFnData
-    >(
-      options: FetchQueryOptions<TQueryFnData, TError, TData>
-    ): Promise<TData | undefined> => {
+    fetchQuery: options => {
       const defaultedOptions = queryClient.defaultQueryOptions(options)
 
       // https://github.com/tannerlinsley/react-query/issues/652
@@ -247,10 +239,7 @@ export function createQueryClient(config: QueryClientConfig = {}) {
         defaultedOptions.retry = false
       }
 
-      const query = queryCache.build<TQueryFnData, TError, TData>(
-        queryClient,
-        defaultedOptions
-      )
+      const query = queryCache.build(queryClient, defaultedOptions)
 
       return query.isStaleByTime(defaultedOptions.staleTime)
         ? query.fetch(defaultedOptions)
@@ -258,15 +247,13 @@ export function createQueryClient(config: QueryClientConfig = {}) {
     },
     prefetchQuery: options =>
       queryClient.fetchQuery(options).then(noop).catch(noop),
-    fetchInfiniteQuery: <
-      TQueryFnData = unknown,
-      TError = unknown,
-      TData = TQueryFnData
-    >(
-      options: FetchInfiniteQueryOptions<TQueryFnData, TError, TData>
-    ): Promise<InfiniteQueryResult<TData> | undefined> => {
-      options.behavior = infiniteQueryBehavior<TQueryFnData, TError, TData>()
-      return queryClient.fetchQuery(options)
+    fetchInfiniteQuery: <TGenerics extends QueryGenerics>(
+      options: FetchInfiniteQueryOptions<TGenerics>
+    ): Promise<InfiniteQueryResult<TGenerics> | undefined> => {
+      options.behavior = infiniteQueryBehavior()
+      return (queryClient.fetchQuery<TGenerics>(
+        options as any
+      ) as unknown) as Promise<InfiniteQueryResult<TGenerics> | undefined>
     },
     prefetchInfiniteQuery: options => {
       return queryClient.fetchInfiniteQuery(options).then(noop).catch(noop)
@@ -299,10 +286,12 @@ export function createQueryClient(config: QueryClientConfig = {}) {
         queryDefaults.push({ queryKey, defaultOptions: options })
       }
     },
-    getQueryDefaults: queryKey => {
+    getQueryDefaults: <TGenerics extends QueryGenerics>(
+      queryKey?: QueryKey
+    ): QueryObserverOptions<TGenerics> | undefined => {
       return queryKey
-        ? queryDefaults.find(x => partialMatchKey(queryKey, x.queryKey))
-            ?.defaultOptions
+        ? (queryDefaults.find(x => partialMatchKey(queryKey, x.queryKey))
+            ?.defaultOptions as QueryObserverOptions<TGenerics> | undefined)
         : undefined
     },
     setMutationDefaults: (mutationKey, options) => {
@@ -315,16 +304,18 @@ export function createQueryClient(config: QueryClientConfig = {}) {
         mutationDefaults.push({ mutationKey, defaultOptions: options })
       }
     },
-    getMutationDefaults: mutationKey => {
+    getMutationDefaults: <TGenerics extends MutationGenerics>(
+      mutationKey?: MutationKey
+    ): MutationObserverOptions<TGenerics> | undefined => {
       return mutationKey
-        ? mutationDefaults.find(x =>
+        ? (mutationDefaults.find(x =>
             partialMatchKey(mutationKey, x.mutationKey)
-          )?.defaultOptions
+          )?.defaultOptions as MutationObserverOptions<TGenerics> | undefined)
         : undefined
     },
-    defaultQueryOptions: <T extends QueryOptions<any, any, any>>(
-      options?: T
-    ) => {
+    defaultQueryOptions: <TGenerics extends QueryGenerics>(
+      options?: QueryOptions<TGenerics>
+    ): FetchQueryOptions<TGenerics> => {
       if (options?._defaulted) {
         return options
       }
@@ -333,13 +324,13 @@ export function createQueryClient(config: QueryClientConfig = {}) {
         ...queryClient.getQueryDefaults(options?.queryKey),
         ...options,
         _defaulted: true,
-      } as T
+      } as FetchQueryOptions<TGenerics>
     },
     defaultQueryObserverOptions: options => {
       return queryClient.defaultQueryOptions(options)
     },
-    defaultMutationOptions: <T extends MutationOptions<any, any, any, any>>(
-      options?: T
+    defaultMutationOptions: <TGenerics extends MutationGenerics>(
+      options?: MutationOptions<TGenerics>
     ) => {
       if (options?._defaulted) {
         return options
@@ -350,7 +341,7 @@ export function createQueryClient(config: QueryClientConfig = {}) {
         ...queryClient.getMutationDefaults(options?.mutationKey),
         ...options,
         _defaulted: true,
-      } as T
+      } as MutationOptions<TGenerics>
     },
     clear: () => {
       queryCache.clear()

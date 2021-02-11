@@ -1,68 +1,72 @@
 import { QueryFilters, getQueryKeyHashFn, matchQuery } from './utils'
 import { createQuery, Query, QueryState } from './query'
-import type { QueryOptions } from './types'
+import type { QueryGenerics, QueryOptions } from './types'
 import { notifyManager } from './notifyManager'
 import type { QueryClient } from './queryClient'
 import { Subscribable } from './subscribable'
+import { SetRequired } from 'type-fest'
 
 // TYPES
 
 interface QueryCacheConfig {
-  onError?: (error: unknown, query: Query<unknown, unknown, unknown>) => void
+  onError?: <TGenerics extends QueryGenerics>(
+    error: unknown,
+    query: Query<TGenerics>
+  ) => void
 }
 
 interface QueryHashMap {
-  [hash: string]: Query<any, any>
+  [hash: string]: Query<any>
 }
 
-type QueryCacheListener = (query?: Query) => void
+type QueryCacheListener = (query?: Query<any>) => void
 
 // CLASS
 
 export type QueryCache = {
   config?: QueryCacheConfig
   subscribe: Subscribable<QueryCacheListener>['subscribe']
-  build<TQueryFnData, TError, TData>(
+  build<TGenerics extends QueryGenerics>(
     client: QueryClient,
-    options: QueryOptions<TQueryFnData, TError, TData>,
-    state?: QueryState<TData, TError>
-  ): Query<TQueryFnData, TError, TData>
-  add(query: Query<any, any>): void
-  remove(query: Query<any, any>): void
+    options: QueryOptions<TGenerics>,
+    state?: QueryState<TGenerics>
+  ): Query<TGenerics>
+  add<TGenerics extends QueryGenerics>(query: Query<TGenerics>): void
+  remove(query: Query<any>): void
   clear(): void
-  get<TQueryFnData = unknown, TError = unknown, TData = TQueryFnData>(
+  get<TGenerics extends QueryGenerics>(
     queryHash: string
-  ): Query<TQueryFnData, TError, TData> | undefined
-  getAll(): Query[]
-  find<TQueryFnData = unknown, TError = unknown, TData = TQueryFnData>(
+  ): Query<TGenerics> | undefined
+  getAll<TGenerics extends QueryGenerics>(): Query<TGenerics>[]
+  find<TGenerics extends QueryGenerics>(
     filters?: QueryFilters
-  ): Query<TQueryFnData, TError, TData> | undefined
-  findAll(filters?: QueryFilters): Query[]
-  notify(query?: Query<any, any>): void
+  ): Query<TGenerics> | undefined
+  findAll(filters?: QueryFilters): Query<QueryGenerics>[]
+  notify(query?: Query<any>): void
   onFocus(): void
   onOnline(): void
 }
 
 export function createQueryCache(config?: QueryCacheConfig) {
-  let queries: Query<any, any>[] = []
+  let queries: Query<any>[] = []
   const queriesMap: QueryHashMap = {}
   const subscribable = Subscribable<QueryCacheListener>()
 
   const queryCache: QueryCache = {
     config,
     subscribe: subscribable.subscribe,
-    build: <TQueryFnData, TError, TData>(
+    build: <TGenerics extends QueryGenerics>(
       client: QueryClient,
-      options: QueryOptions<TQueryFnData, TError, TData>,
-      state?: QueryState<TData, TError>
+      options: SetRequired<QueryOptions<TGenerics>, 'queryKey'>,
+      state?: QueryState<TGenerics>
     ) => {
       const hashFn = getQueryKeyHashFn(options)
-      const queryKey = options.queryKey!
+      const queryKey = options.queryKey
       const queryHash = options.queryHash ?? hashFn(queryKey)
-      let query = queryCache.get<TQueryFnData, TError, TData>(queryHash)
+      let query = queryCache.get<TGenerics>(queryHash)
 
       if (!query) {
-        query = createQuery<TQueryFnData, TError, TData>({
+        query = createQuery<TGenerics>({
           cache: queryCache,
           queryKey,
           queryHash,

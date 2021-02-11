@@ -1,4 +1,4 @@
-import type { MutationOptions, MutationStatus } from './types'
+import type { MutationGenerics, MutationOptions, MutationStatus } from './types'
 import type { MutationCache } from './mutationCache'
 import type { MutationObserver } from './mutationObserver'
 import { getLogger } from './logger'
@@ -8,37 +8,32 @@ import { noop } from './utils'
 
 // TYPES
 
-interface MutationConfig<TData, TError, TVariables, TContext> {
+interface MutationConfig<TGenerics extends MutationGenerics> {
   mutationId: number
   mutationCache: MutationCache
-  options: MutationOptions<TData, TError, TVariables, TContext>
-  defaultOptions?: MutationOptions<TData, TError, TVariables, TContext>
-  state?: MutationState<TData, TError, TVariables, TContext>
+  options: MutationOptions<TGenerics>
+  defaultOptions?: MutationOptions<TGenerics>
+  state?: MutationState<TGenerics>
 }
 
-export interface MutationState<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
-> {
-  context: TContext | undefined
-  data: TData | undefined
-  error: TError | null
+export interface MutationState<TGenerics extends MutationGenerics> {
+  context: TGenerics['Context'] | undefined
+  data: TGenerics['Data'] | undefined
+  error: TGenerics['Error'] | null
   failureCount: number
   isPaused: boolean
   status: MutationStatus
-  variables: TVariables | undefined
+  variables: TGenerics['Variables'] | undefined
 }
 
 interface FailedAction {
   type: 'failed'
 }
 
-interface LoadingAction<TVariables, TContext> {
+interface LoadingAction<TGenerics extends MutationGenerics> {
   type: 'loading'
-  variables?: TVariables
-  context?: TContext
+  variables?: TGenerics['Variables']
+  context?: TGenerics['Context']
 }
 
 interface SuccessAction<TData> {
@@ -59,49 +54,41 @@ interface ContinueAction {
   type: 'continue'
 }
 
-interface SetStateAction<TData, TError, TVariables, TContext> {
+interface SetStateAction<TGenerics extends MutationGenerics> {
   type: 'setState'
-  state: MutationState<TData, TError, TVariables, TContext>
+  state: MutationState<TGenerics>
 }
 
-export type Action<TData, TError, TVariables, TContext> =
+export type Action<TGenerics extends MutationGenerics> =
   | ContinueAction
-  | ErrorAction<TError>
+  | ErrorAction<TGenerics['Error']>
   | FailedAction
-  | LoadingAction<TVariables, TContext>
+  | LoadingAction<TGenerics>
   | PauseAction
-  | SetStateAction<TData, TError, TVariables, TContext>
-  | SuccessAction<TData>
+  | SetStateAction<TGenerics>
+  | SuccessAction<TGenerics['Data']>
 
 // CLASS
 
-export type Mutation<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
-> = {
-  state: MutationState<TData, TError, TVariables, TContext>
-  options: MutationOptions<TData, TError, TVariables, TContext>
+export type Mutation<TGenerics extends MutationGenerics> = {
+  state: MutationState<TGenerics>
+  options: MutationOptions<TGenerics>
   mutationId: number
-  setState(state: MutationState<TData, TError, TVariables, TContext>): void
-  addObserver(observer: MutationObserver<any, any, any, any>): void
-  removeObserver(observer: MutationObserver<any, any, any, any>): void
+  setState(state: MutationState<TGenerics>): void
+  addObserver(observer: MutationObserver<TGenerics>): void
+  removeObserver(observer: MutationObserver<TGenerics>): void
   cancel(): Promise<void>
-  continue(): Promisable<TGenerics['Data']>
-  execute(): Promisable<TGenerics['Data']>
+  continue(): Promise<TGenerics['Data']>
+  execute(): Promise<TGenerics['Data']>
 }
 
-export function createMutation<
-  TData = unknown,
-  TError = unknown,
-  TVariables = void,
-  TContext = unknown
->(config: MutationConfig<TData, TError, TVariables, TContext>) {
-  let observers: MutationObserver<TData, TError, TVariables, TContext>[] = []
-  let retryer: Retryer<TData>
+export function createMutation<TGenerics extends MutationGenerics>(
+  config: MutationConfig<TGenerics>
+) {
+  let observers: MutationObserver<TGenerics>[] = []
+  let retryer: Retryer<TGenerics>
 
-  const mutation: Mutation<TData, TError, TVariables, TContext> = {
+  const mutation: Mutation<TGenerics> = {
     options: {
       ...config.defaultOptions,
       ...config.options,
@@ -134,7 +121,7 @@ export function createMutation<
       return mutation.execute()
     },
     execute: () => {
-      let data: TData
+      let data: TGenerics['Data']
 
       const restored = mutation.state.status === 'loading'
 
@@ -186,7 +173,7 @@ export function createMutation<
               error,
               mutation.state.variables,
               mutation.state.context,
-              mutation as Mutation<unknown, unknown, unknown, unknown>
+              mutation
             )
           }
 
@@ -219,7 +206,7 @@ export function createMutation<
 
   return mutation
 
-  function executeMutation(): Promisable<TGenerics['Data']> {
+  function executeMutation(): Promise<TGenerics['Data']> {
     retryer = createRetryer({
       fn: () => {
         if (!mutation.options.mutationFn) {
@@ -243,7 +230,7 @@ export function createMutation<
     return retryer.promise
   }
 
-  function dispatch(action: Action<TData, TError, TVariables, TContext>): void {
+  function dispatch(action: Action<TGenerics>): void {
     mutation.state = reducer(mutation.state, action)
 
     notifyManager.batch(() => {
@@ -256,11 +243,8 @@ export function createMutation<
 }
 
 export function getDefaultState<
-  TData,
-  TError,
-  TVariables,
-  TContext
->(): MutationState<TData, TError, TVariables, TContext> {
+  TGenerics extends MutationGenerics
+>(): MutationState<TGenerics> {
   return {
     context: undefined,
     data: undefined,
@@ -272,10 +256,10 @@ export function getDefaultState<
   }
 }
 
-function reducer<TData, TError, TVariables, TContext>(
-  state: MutationState<TData, TError, TVariables, TContext>,
-  action: Action<TData, TError, TVariables, TContext>
-): MutationState<TData, TError, TVariables, TContext> {
+function reducer<TGenerics extends MutationGenerics>(
+  state: MutationState<TGenerics>,
+  action: Action<TGenerics>
+): MutationState<TGenerics> {
   switch (action.type) {
     case 'failed':
       return {

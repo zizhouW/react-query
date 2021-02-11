@@ -1,29 +1,35 @@
 import React from 'react'
 
-import { QueryObserverResult } from '../core/types'
+import {
+  InfiniteQueryGenerics,
+  QueryGenerics,
+  QueryObserverOptions,
+  QueryObserverResult,
+} from '../core/types'
 import { notifyManager } from '../core/notifyManager'
 import { createQueryObserver, QueryObserver } from '../core/queryObserver'
 import { useQueryErrorResetBoundary } from './QueryErrorResetBoundary'
 import { useQueryClient } from './QueryClientProvider'
-import { UseBaseQueryOptions } from './types'
 import { useIsMounted } from './useIsMounted'
-
-// UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryData>
-// typeof createQueryObserver
+import { createInfiniteQueryObserver } from '../core'
 
 export function useBaseQuery<
-  TOptions extends UseBaseQueryOptions<
-    unknown,
-    unknown,
-    unknown,
-    unknown
-  > = UseBaseQueryOptions,
-  TMakeObserver extends typeof createQueryObserver = typeof createQueryObserver
->(options: TOptions, createObserver: TMakeObserver) {
+  TGenerics extends QueryGenerics | InfiniteQueryGenerics<any>,
+  TObserverOptions extends QueryObserverOptions<TGenerics>,
+  TObserver extends QueryObserver<TGenerics>,
+  TObserverResult extends QueryObserverResult<TGenerics>
+>(
+  options: QueryObserverOptions<TGenerics>,
+  createObserver:
+    | typeof createQueryObserver
+    | typeof createInfiniteQueryObserver
+) {
   const isMounted = useIsMounted()
   const queryClient = useQueryClient()
   const errorResetBoundary = useQueryErrorResetBoundary()
-  const defaultedOptions = queryClient.defaultQueryObserverOptions(options)
+  const defaultedOptions = queryClient.defaultQueryObserverOptions(
+    options
+  ) as TObserverOptions
 
   // Include callbacks in batch renders
   if (defaultedOptions.onError) {
@@ -58,9 +64,10 @@ export function useBaseQuery<
   }
 
   // Create query observer
-  const observerRef = React.useRef<QueryObserver<TGenerics>>()
+  const observerRef = React.useRef<TObserver>()
   const observer =
-    observerRef.current || createObserver(queryClient, defaultedOptions)
+    observerRef.current ||
+    (createObserver as any)(queryClient, defaultedOptions)
   observerRef.current = observer
 
   // Update options
@@ -75,7 +82,7 @@ export function useBaseQuery<
   React.useEffect(() => {
     errorResetBoundary.clearReset()
     return observer.subscribe(
-      notifyManager.batchCalls((result: QueryObserverResult) => {
+      notifyManager.batchCalls((result: TObserverResult) => {
         if (isMounted()) {
           setCurrentResult(result)
         }
