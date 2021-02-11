@@ -9,7 +9,7 @@ import { useBaseQuery } from './useBaseQuery'
 
 // HOOK
 
-export function useInfiniteQuery<TGenerics extends InfiniteQueryGenerics<any>>(
+export function useInfiniteQuery<TGenerics extends InfiniteQueryGenerics>(
   options: QueryObserverOptions<TGenerics>
 ) {
   return useBaseQuery<

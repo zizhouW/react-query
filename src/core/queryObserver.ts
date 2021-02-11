@@ -9,8 +9,8 @@ import {
 } from './utils'
 import { notifyManager } from './notifyManager'
 import type {
-  QueryGenerics,
   PlaceholderDataFunction,
+  QueryGenerics,
   QueryObserverBaseResult,
   QueryObserverOptions,
   QueryObserverResult,

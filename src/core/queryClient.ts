@@ -7,7 +7,6 @@ import {
 } from './utils'
 import type {
   DefaultQueryClientOptions,
-  FetchInfiniteQueryOptions,
   FetchQueryOptions,
   InfiniteQueryResult,
   InvalidateOptions,
@@ -42,7 +41,7 @@ interface QueryClientConfig {
 
 interface QueryDefaults {
   queryKey: QueryKey
-  defaultOptions: QueryOptions
+  defaultOptions: QueryOptions<any>
 }
 
 interface MutationDefaults {
@@ -83,10 +82,10 @@ export type QueryClient = {
     options: FetchQueryOptions<TGenerics>
   ): Promise<void>
   fetchInfiniteQuery<TGenerics extends QueryGenerics>(
-    options: FetchInfiniteQueryOptions<TGenerics>
+    options: FetchQueryOptions<TGenerics>
   ): Promise<InfiniteQueryResult<TGenerics> | undefined>
   prefetchInfiniteQuery<TGenerics extends QueryGenerics>(
-    options: FetchInfiniteQueryOptions<TGenerics>
+    options: FetchQueryOptions<TGenerics>
   ): Promise<void>
   cancelMutations(): Promise<void>
   resumePausedMutations(): Promise<void>
@@ -248,7 +247,7 @@ export function createQueryClient(config: QueryClientConfig = {}) {
     prefetchQuery: options =>
       queryClient.fetchQuery(options).then(noop).catch(noop),
     fetchInfiniteQuery: <TGenerics extends QueryGenerics>(
-      options: FetchInfiniteQueryOptions<TGenerics>
+      options: FetchQueryOptions<TGenerics>
     ): Promise<InfiniteQueryResult<TGenerics> | undefined> => {
       options.behavior = infiniteQueryBehavior()
       return (queryClient.fetchQuery<TGenerics>(

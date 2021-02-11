@@ -1,45 +1,70 @@
-import { Merge } from 'type-fest'
+import { Merge, Promisable, UnionToIntersection } from 'type-fest'
 import type { MutationState } from './mutation'
 import type { QueryBehavior } from './query'
 import type { RetryValue, RetryDelayValue } from './retryer'
 import type { QueryFilters } from './utils'
 
-export type _Prettify<T> = T extends infer U ? { [K in keyof U]: U[K] } : never
+export type _Prettify<T> = { [K in keyof T]: T[K] }
 
 export type QueryKey = string | unknown[]
 
+// The template for user-facing generics
 export interface QueryGenerics {
   Data?: unknown
+  QueryData?: unknown
+  SelectedData?: unknown
   Error?: unknown
   QueryKey?: QueryKey
-  SelectedData?: unknown
   PageParam?: unknown
   NextPageParam?: unknown
   PreviousPageParam?: unknown
 }
 
-export type InfiniteQueryGenerics<TGenerics extends QueryGenerics> = Merge<
-  QueryGenerics,
-  {
-    Data?: {
-      pages: TGenerics['Data'][]
-      pageParams: TGenerics['PageParam'][]
-    }
-  }
->
+// This is how we default some generics to the types of others
+export type DefualtQueryGenerics<
+  TGenerics extends QueryGenerics = QueryGenerics,
+  // Derive other types
+  TData = TGenerics['Data'],
+  TQueryData = TData,
+  TSelectedData = TQueryData
+> = QueryGenerics &
+  Merge<
+    // Derive the defaults for data/pages
+    {
+      QueryData?: TQueryData
+      SelectedData?: TSelectedData
+    },
+    Merge<
+      TGenerics,
+      // This helps enforce usage of the resolved version of the generics internally
+      { _resolved: true }
+    >
+  >
+
+// This is the final internal implementation of the generic map.
+export type ResolvedQueryGenerics<
+  // These are the users generics
+  TGenericsIn extends QueryGenerics = QueryGenerics
+> =
+  // Take the users generics and resolve them using the defaults
+  DefualtQueryGenerics<TGenericsIn>
 
 export interface MutationGenerics {
-  Data: unknown
-  Error: unknown
-  Variables: unknown
-  Context: unknown
+  Data?: unknown
+  Error?: unknown
+  Variables?: unknown
+  Context?: unknown
 }
+
+export type ResolvedMutationGenerics<
+  TGenericsIn extends MutationGenerics = MutationGenerics
+> = Merge<MutationGenerics, TGenericsIn>
 
 export type QueryKeyHashFunction = (queryKey?: QueryKey) => string
 
 export type QueryFunction<TGenerics extends QueryGenerics> = (
   context: QueryFunctionContext<TGenerics>
-) => Promise<TGenerics['Data']>
+) => Promisable<TGenerics['Data']>
 
 export interface QueryFunctionContext<TGenerics extends QueryGenerics> {
   queryKey: TGenerics['QueryKey']
@@ -65,7 +90,7 @@ export interface InfiniteQueryResult<TGenerics extends QueryGenerics> {
   pageParams: TGenerics['PageParam'][]
 }
 
-export interface QueryOptions<TGenerics extends QueryGenerics = QueryGenerics> {
+export interface QueryOptions<TGenerics extends QueryGenerics> {
   /**
    * If `false`, failed queries will not retry by default.
    * If `true`, failed queries will retry infinitely., failureCount: num
@@ -104,8 +129,12 @@ export interface QueryOptions<TGenerics extends QueryGenerics = QueryGenerics> {
   _defaulted?: boolean
 }
 
-export interface QueryObserverOptions<TGenerics extends QueryGenerics>
-  extends QueryOptions<TGenerics> {
+export interface QueryObserverOptions<
+  TGenericsIn extends QueryGenerics,
+  TGenerics extends ResolvedQueryGenerics<TGenericsIn> = ResolvedQueryGenerics<
+    TGenericsIn
+  >
+> extends QueryOptions<TGenerics> {
   /**
    * Set this to `false` to disable automatic refetching when the query mounts or changes query keys.
    * To refetch the query, use the `refetch` method returned from the `useQuery` instance.
@@ -189,7 +218,7 @@ export interface QueryObserverOptions<TGenerics extends QueryGenerics>
   /**
    * This option can be used to transform or select a part of the data returned by the query function.
    */
-  select?: (data: TGenerics['Data']) => TGenerics['SelectedData']
+  select?: (data: TGenerics['QueryData']) => TGenerics['SelectedData']
   /**
    * If set to `true`, the query will suspend when `status === 'loading'`
    * and throw errors when `status === 'error'`.
@@ -217,11 +246,6 @@ export interface FetchQueryOptions<TGenerics extends QueryGenerics>
    */
   staleTime?: number
 }
-
-export interface FetchInfiniteQueryOptions<TGenerics extends QueryGenerics>
-  extends FetchQueryOptions<
-    Merge<TGenerics, { Data: InfiniteQueryResult<TGenerics> }>
-  > {}
 
 export interface ResultOptions {
   throwOnError?: boolean
@@ -254,8 +278,13 @@ export interface FetchPreviousPageOptions extends ResultOptions {
 
 export type QueryStatus = 'idle' | 'loading' | 'error' | 'success'
 
-export interface QueryObserverBaseResult<TGenerics extends QueryGenerics> {
-  data: TGenerics['Data'] | undefined
+export interface QueryObserverBaseResult<
+  TGenericsIn extends QueryGenerics,
+  TGenerics extends ResolvedQueryGenerics<TGenericsIn> = ResolvedQueryGenerics<
+    TGenericsIn
+  >
+> {
+  data: TGenerics['SelectedData'] | undefined
   dataUpdatedAt: number
   error: TGenerics['Error'] | null
   errorUpdatedAt: number
@@ -320,7 +349,7 @@ export interface QueryObserverLoadingErrorResult<
 export interface QueryObserverRefetchErrorResult<
   TGenerics extends QueryGenerics
 > extends QueryObserverBaseResult<TGenerics> {
-  data: TGenerics['Data']
+  data: TGenerics['SelectedData']
   error: TGenerics['Error']
   isError: true
   isIdle: false
@@ -333,7 +362,7 @@ export interface QueryObserverRefetchErrorResult<
 
 export interface QueryObserverSuccessResult<TGenerics extends QueryGenerics>
   extends QueryObserverBaseResult<TGenerics> {
-  data: TGenerics['Data']
+  data: TGenerics['SelectedData']
   error: null
   isError: false
   isIdle: false
@@ -344,7 +373,12 @@ export interface QueryObserverSuccessResult<TGenerics extends QueryGenerics>
   status: 'success'
 }
 
-export type QueryObserverResult<TGenerics extends QueryGenerics> =
+export type QueryObserverResult<
+  TGenericsIn extends QueryGenerics,
+  TGenerics extends ResolvedQueryGenerics<TGenericsIn> = ResolvedQueryGenerics<
+    TGenericsIn
+  >
+> =
   | QueryObserverIdleResult<TGenerics>
   | QueryObserverLoadingErrorResult<TGenerics>
   | QueryObserverLoadingResult<TGenerics>
@@ -411,7 +445,7 @@ export interface InfiniteQueryObserverLoadingErrorResult<
 export interface InfiniteQueryObserverRefetchErrorResult<
   TGenerics extends QueryGenerics
 > extends InfiniteQueryObserverBaseResult<TGenerics> {
-  data: InfiniteQueryResult<TGenerics>
+  data: TGenerics['SelectedData']
   error: TGenerics['Error']
   isError: true
   isIdle: false
@@ -425,7 +459,7 @@ export interface InfiniteQueryObserverRefetchErrorResult<
 export interface InfiniteQueryObserverSuccessResult<
   TGenerics extends QueryGenerics
 > extends InfiniteQueryObserverBaseResult<TGenerics> {
-  data: InfiniteQueryResult<TGenerics>
+  data: TGenerics['SelectedData']
   error: null
   isError: false
   isIdle: false
@@ -436,7 +470,12 @@ export interface InfiniteQueryObserverSuccessResult<
   status: 'success'
 }
 
-export type InfiniteQueryObserverResult<TGenerics extends QueryGenerics> =
+export type InfiniteQueryObserverResult<
+  TGenericsIn extends QueryGenerics,
+  TGenerics extends ResolvedQueryGenerics<TGenericsIn> = ResolvedQueryGenerics<
+    TGenericsIn
+  >
+> =
   | InfiniteQueryObserverIdleResult<TGenerics>
   | InfiniteQueryObserverLoadingErrorResult<TGenerics>
   | InfiniteQueryObserverLoadingResult<TGenerics>
@@ -521,8 +560,8 @@ export interface MutationObserverResult<TGenerics extends MutationGenerics>
 }
 
 export interface DefaultQueryClientOptions<TError = unknown> {
-  queries?: QueryObserverOptions<Merge<QueryGenerics, { Error: TError }>>
+  queries?: QueryObserverOptions<ResolvedQueryGenerics<{ Error: TError }>>
   mutations?: MutationObserverOptions<
-    Merge<MutationGenerics, { Error: TError }>
+    ResolvedMutationGenerics<{ Error: TError }>
   >
 }

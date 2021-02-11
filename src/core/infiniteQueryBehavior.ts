@@ -1,13 +1,13 @@
 import type { QueryBehavior } from './query'
 import { isCancelable } from './retryer'
 import type {
-  InfiniteQueryGenerics,
   QueryFunctionContext,
+  InfiniteQueryGenerics,
   QueryOptions,
 } from './types'
 
 export function infiniteQueryBehavior<
-  TGenerics extends InfiniteQueryGenerics<any>
+  TGenerics extends InfiniteQueryGenerics
 >(): QueryBehavior<TGenerics> {
   return {
     onFetch: context => {

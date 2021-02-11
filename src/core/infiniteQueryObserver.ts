@@ -3,8 +3,8 @@ import type {
   FetchPreviousPageOptions,
   QueryObserverOptions,
   InfiniteQueryObserverResult,
-  InfiniteQueryGenerics,
   QueryGenerics,
+  ResolvedQueryGenerics,
 } from './types'
 import type { QueryClient } from './queryClient'
 import {
@@ -23,15 +23,15 @@ import { Merge } from 'type-fest'
 
 export type InfiniteQueryObserver<
   TGenericsIn extends QueryGenerics,
-  TGenerics extends InfiniteQueryGenerics<TGenericsIn> = InfiniteQueryGenerics<
+  TGenerics extends ResolvedQueryGenerics<TGenericsIn> = ResolvedQueryGenerics<
     TGenericsIn
   >
 > = Merge<
-  QueryObserver<TGenericsIn>,
+  QueryObserver<TGenerics>,
   {
     subscribe: Subscribable<QueryObserverListener<TGenerics>>['subscribe']
     getCurrentResult(): InfiniteQueryObserverResult<TGenerics>
-    setOptions(options?: QueryObserverOptions<TGenerics>): void
+    setOptions(newOptions?: QueryObserverOptions<TGenerics>): void
     fetchNextPage(
       options?: FetchNextPageOptions
     ): Promise<InfiniteQueryObserverResult<TGenerics>>
@@ -46,7 +46,10 @@ export type InfiniteQueryObserver<
 >
 
 export function createInfiniteQueryObserver<
-  TGenerics extends InfiniteQueryGenerics<any>
+  TGenericsIn extends QueryGenerics,
+  TGenerics extends ResolvedQueryGenerics<TGenericsIn> = ResolvedQueryGenerics<
+    TGenericsIn
+  >
 >(
   client: QueryClient,
   observerOptions: QueryObserverOptions<TGenerics>

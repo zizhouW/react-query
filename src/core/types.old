@@ -42,7 +42,8 @@ export interface InfiniteData<TData> {
   pageParams: unknown[]
 }
 
-export interface QueryOptions<TGenerics extends QueryGenerics> {
+export interface QueryOptions<TGenericsIn extends QueryGenerics,
+TGenerics extends QueryGenerics<TGenericsIn> = QueryGenerics<TGenericsIn>> {
   /**
    * If `false`, failed queries will not retry by default.
    * If `true`, failed queries will retry infinitely., failureCount: num

@@ -1,7 +1,6 @@
 import React from 'react'
 
 import {
-  InfiniteQueryGenerics,
   QueryGenerics,
   QueryObserverOptions,
   QueryObserverResult,
@@ -14,7 +13,7 @@ import { useIsMounted } from './useIsMounted'
 import { createInfiniteQueryObserver } from '../core'
 
 export function useBaseQuery<
-  TGenerics extends QueryGenerics | InfiniteQueryGenerics<any>,
+  TGenerics extends QueryGenerics,
   TObserverOptions extends QueryObserverOptions<TGenerics>,
   TObserver extends QueryObserver<TGenerics>,
   TObserverResult extends QueryObserverResult<TGenerics>

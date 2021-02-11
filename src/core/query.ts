@@ -18,11 +18,12 @@ import {
   Retryer,
 } from './retryer'
 import {
-  QueryGenerics,
   InitialDataFunction,
   QueryFunctionContext,
+  QueryGenerics,
   QueryOptions,
   QueryStatus,
+  ResolvedQueryGenerics,
 } from './types'
 
 // TYPES
@@ -36,8 +37,13 @@ interface QueryConfig<TGenerics extends QueryGenerics> {
   state?: QueryState<TGenerics>
 }
 
-export interface QueryState<TGenerics extends QueryGenerics> {
-  data?: TGenerics['Data']
+export interface QueryState<
+  TGenerics extends QueryGenerics,
+  TResolvedGenerics extends ResolvedQueryGenerics<
+    TGenerics
+  > = ResolvedQueryGenerics<TGenerics>
+> {
+  data?: TResolvedGenerics['QueryData']
   dataUpdateCount: number
   dataUpdatedAt: number
   error: TGenerics['Data'] | null
