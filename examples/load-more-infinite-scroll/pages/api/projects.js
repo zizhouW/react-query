@@ -1,7 +1,7 @@
 // an endpoint for getting projects data
 export default (req, res) => {
   const cursor = parseInt(req.query.cursor) || 0
-  const pageSize = 5
+  const pageSize = 100
 
   const data = Array(pageSize)
     .fill(0)

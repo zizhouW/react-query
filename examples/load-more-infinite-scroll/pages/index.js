@@ -4,8 +4,8 @@ import axios from 'axios'
 
 import { useInfiniteQuery, QueryClient, QueryClientProvider } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
+import { List } from 'react-virtualized';
 
-//
 
 import useIntersectionObserver from '../hooks/useIntersectionObserver'
 
@@ -51,6 +51,8 @@ function Example() {
     enabled: hasNextPage,
   })
 
+  const flattenData = data?.pages.reduce((prev, curr) => prev.concat([...curr.data]), []) || []
+
   return (
     <div>
       <h1>Infinite Loading</h1>
@@ -72,23 +74,27 @@ function Example() {
                 : 'Nothing more to load'}
             </button>
           </div>
-          {data.pages.map(page => (
-            <React.Fragment key={page.nextId}>
-              {page.data.map(project => (
+          <List
+            rowCount={flattenData.length}
+            width={700}
+            height={200}
+            rowHeight={40}
+            rowRenderer={({ index, style }) => {
+              return (
                 <p
-                  style={{
+                  style={{ ...style,
                     border: '1px solid gray',
                     borderRadius: '5px',
-                    padding: '10rem 1rem',
-                    background: `hsla(${project.id * 30}, 60%, 80%, 1)`,
+                    background: `hsla(${flattenData[index].id * 30}, 60%, 80%, 1)`,
                   }}
-                  key={project.id}
+                  key={flattenData[index].id}
                 >
-                  {project.name}
+                  {flattenData[index].name}
                 </p>
-              ))}
-            </React.Fragment>
-          ))}
+              )
+            }}
+            overscanRowCount={3}
+          />
           <div>
             <button
               ref={loadMoreButtonRef}
